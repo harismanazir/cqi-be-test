@@ -1,0 +1,27 @@
+# Ultra-lightweight production requirements - optimized for fast deployment
+# Core web framework (minimal footprint)
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+python-multipart==0.0.6
+
+# Essential AI packages - compatible versions
+langchain-groq>=0.1.9
+langchain-core>=0.2.26
+langgraph>=0.1.1
+langsmith>=0.0.87
+
+# Environment utilities
+python-dotenv==1.0.0
+
+# Git integration (pinned versions)
+GitPython==3.1.40
+PyGithub==1.59.1
+
+# Heavy ML dependencies (will cause larger builds)
+sentence-transformers>=2.2.0
+scikit-learn>=1.3.0
+numpy>=1.24.0
+
+# Additional dependencies
+flask>=2.3.0

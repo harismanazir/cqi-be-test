@@ -1,0 +1,33 @@
+name: cqi-backend
+services:
+- name: api
+  source_dir: /
+  github:
+    repo: your-username/your-repo-name
+    branch: main
+  # Use lightweight Python buildpack for faster builds
+  buildpack: heroku/python
+  run_command: python api_backend.py
+  environment_slug: python
+  instance_count: 1
+  instance_size_slug: professional-xs  # Larger size needed for ML dependencies
+  build_command: pip install --no-cache-dir -r requirements.txt
+  envs:
+  - key: PORT
+    value: "8080"
+  - key: GROQ_API_KEY
+    value: "your-groq-api-key"
+    type: SECRET
+  - key: PYTHONPATH
+    value: "/app"
+  - key: PYTHONUNBUFFERED
+    value: "1"
+  http_port: 8080
+  health_check:
+    http_path: /api/test
+    initial_delay_seconds: 10
+    period_seconds: 10
+    timeout_seconds: 5
+    failure_threshold: 3
+  routes:
+  - path: /

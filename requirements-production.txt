@@ -1,0 +1,28 @@
+# Lightweight production requirements for DigitalOcean
+# This version excludes heavy ML dependencies that cause build failures
+
+# Core web frameworks
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+python-multipart==0.0.6
+
+# Essential AI packages (lightweight versions)
+langchain-groq==0.1.9
+langchain-core==0.1.52
+
+# Lightweight alternatives - NO PyTorch/Heavy ML
+# sentence-transformers>=2.2.0  # REMOVED - too heavy for deployment
+# scikit-learn>=1.3.0          # REMOVED - too heavy for deployment
+numpy==1.24.4  # Keep numpy but pin to stable version
+
+# Environment and utilities
+python-dotenv==1.0.0
+typing-extensions==4.8.0
+
+# Git integration
+GitPython==3.1.40
+PyGithub==1.59.1
+
+# Remove Flask as we're only using FastAPI
+# flask>=2.3.0  # REMOVED - not needed for API-only deployment

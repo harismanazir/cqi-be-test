@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv venv:*)",
+      "Bash(source:*)",
+      "Bash(uv pip install:*)",
+      "Bash(python:*)",
+      "Bash(pip install:*)",
+      "Read(//c/Users/haris/Downloads/atlan-ai/frontend-cqi/insight-synth-code-main/**)",
+      "Bash(node:*)",
+      "Bash(npm:*)",
+      "Read(//c/Users/haris/Downloads/**)",
+      "Bash(npx create-react-app:*)",
+      "Bash(rm:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

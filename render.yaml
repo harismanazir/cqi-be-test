@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: cqi-backend
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python api_backend.py
+    plan: free
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.4
+      - key: PORT
+        value: 8000
+    healthCheckPath: /api/test
