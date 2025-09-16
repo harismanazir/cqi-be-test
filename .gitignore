@@ -147,6 +147,7 @@ cqi_report.*
 reports/
 output/
 .analysis_cache/
+.claude/
 
 # OS specific
 .DS_Store

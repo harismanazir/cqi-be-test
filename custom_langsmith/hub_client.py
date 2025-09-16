@@ -31,7 +31,14 @@ class LangSmithHubClient:
         if not LANGSMITH_AVAILABLE:
             print("[HUB] LangSmith not available - cannot push prompts")
             return
-        
+
+        # Load environment variables
+        try:
+            from dotenv import load_dotenv
+            load_dotenv()
+        except ImportError:
+            pass
+
         api_key = os.getenv('LANGSMITH_API_KEY')
         if not api_key:
             print("[HUB] No API key found - cannot push prompts")
@@ -40,7 +47,7 @@ class LangSmithHubClient:
         try:
             self.client = Client(api_key=api_key)
             self.enabled = True
-            print("[HUB] ✅ Hub client ready")
+            print("[HUB] SUCCESS Hub client ready")
         except Exception as e:
             print(f"[HUB] Failed to initialize: {e}")
             self.enabled = False
@@ -59,16 +66,22 @@ class LangSmithHubClient:
             
             prompts = {}
             agents_config = [
-                ('security-agent-v1', SecurityAgent(), 'Security Analysis Agent'),
-                ('performance-agent-v1', PerformanceAgent(), 'Performance Analysis Agent'),
-                ('complexity-agent-v1', ComplexityAgent(), 'Code Complexity Agent'),
-                ('documentation-agent-v1', DocumentationAgent(), 'Documentation Analysis Agent')
+                ('security-agent', SecurityAgent(), 'Security Analysis Agent'),
+                ('performance-agent', PerformanceAgent(), 'Performance Analysis Agent'),
+                ('complexity-agent', ComplexityAgent(), 'Code Complexity Agent'),
+                ('documentation-agent', DocumentationAgent(), 'Documentation Analysis Agent')
             ]
             
             for prompt_name, agent, description in agents_config:
                 try:
-                    # Extract prompt for different languages as examples
-                    languages = ['python', 'javascript', 'java']
+                    # Extract prompt for all supported languages as examples
+                    # Get all languages from LanguageDetector
+                    try:
+                        from agents.base_agent import LanguageDetector
+                        languages = list(LanguageDetector.LANGUAGES.keys())
+                    except ImportError:
+                        # Fallback to manual list if import fails
+                        languages = ['python', 'javascript', 'java', 'go', 'rust', 'c', 'cpp', 'csharp', 'php']
                     language_prompts = {}
                     
                     for lang in languages:
@@ -90,10 +103,10 @@ class LangSmithHubClient:
                             'tags': ['code-analysis', agent.__class__.__name__.lower().replace('agent', '')]
                         }
                         
-                        print(f"[HUB] ✅ Extracted prompt: {prompt_name}")
+                        print(f"[HUB] SUCCESS Extracted prompt: {prompt_name}")
                 
                 except Exception as e:
-                    print(f"[HUB] ⚠️ Failed to extract {prompt_name}: {e}")
+                    print(f"[HUB] WARNING Failed to extract {prompt_name}: {e}")
             
             print(f"[HUB] Extracted {len(prompts)} prompts total")
             return prompts
@@ -128,11 +141,11 @@ class LangSmithHubClient:
 {base_template}
 
 # LANGSMITH ENHANCEMENTS:
-# ✅ Optimized for cross-agent context sharing
-# ✅ Enhanced accuracy through iterative refinement  
-# ✅ Better error handling and edge cases
-# ✅ Improved JSON response formatting
-# ✅ More precise validation requirements
+# [*] Optimized for cross-agent context sharing
+# [*] Enhanced accuracy through iterative refinement
+# [*] Better error handling and edge cases
+# [*] Improved JSON response formatting
+# [*] More precise validation requirements
 
 # METADATA:
 # - Version: v1.1-langsmith-enhanced
@@ -153,15 +166,15 @@ class LangSmithHubClient:
     def push_prompts_to_hub(self, prompts: Dict[str, Dict], namespace: str = "code-analysis") -> Dict[str, bool]:
         """Push prompts to LangSmith Hub"""
         if not self.enabled:
-            print("[HUB] ❌ Hub client not enabled - cannot push prompts")
+            print("[HUB] ERROR Hub client not enabled - cannot push prompts")
             return {}
         
         results = {}
         
         for prompt_name, prompt_data in prompts.items():
             try:
-                # Create hub prompt name
-                hub_name = f"{namespace}/{prompt_name}"
+                # Use simple prompt name without namespace (LangSmith treats namespace/ as tenant)
+                hub_name = prompt_name
                 
                 # Create PromptTemplate
                 prompt_template = PromptTemplate(
@@ -169,19 +182,14 @@ class LangSmithHubClient:
                     input_variables=prompt_data.get('input_variables', ['language'])
                 )
                 
-                # Push to hub
-                self.client.push_prompt(
-                    prompt_name=hub_name,
-                    prompt_object=prompt_template,
-                    description=prompt_data.get('description', ''),
-                    tags=prompt_data.get('tags', [])
-                )
+                # Push to LangSmith Hub using correct API signature
+                self.client.push_prompt(hub_name, object=prompt_template)
                 
                 results[prompt_name] = True
-                print(f"[HUB] ✅ Pushed: {hub_name}")
+                print(f"[HUB] SUCCESS Pushed: {hub_name}")
                 
             except Exception as e:
-                print(f"[HUB] ❌ Failed to push {prompt_name}: {e}")
+                print(f"[HUB] ERROR Failed to push {prompt_name}: {e}")
                 results[prompt_name] = False
         
         return results
@@ -195,11 +203,10 @@ class LangSmithHubClient:
             # This would need to be implemented based on LangSmith's API
             # For now, return expected prompt names
             expected_prompts = [
-                f"{namespace}/security-agent-v1",
-                f"{namespace}/performance-agent-v1", 
-                f"{namespace}/complexity-agent-v1",
-                f"{namespace}/documentation-agent-v1",
-                f"{namespace}/duplication-agent-v1"
+                "security-agent",
+                "performance-agent",
+                "complexity-agent",
+                "documentation-agent"
             ]
             return expected_prompts
             

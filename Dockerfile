@@ -19,12 +19,21 @@ COPY requirements.txt .
 COPY pyproject.toml* ./
 
 # Install dependencies using uv (10x faster than pip) with ML support
+# LangSmith/LangChain versions used:
+# - langsmith>=0.0.87 (for enhanced prompt management)
+# - langchain-groq>=0.1.9 (for Groq LLM integration)
+# - langchain-core>=0.2.26 (core LangChain functionality)
+# - langgraph>=0.1.1 (for workflow orchestration)
+
 # Install PyTorch CPU-only first to reduce memory usage
 RUN uv pip install --system --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 RUN uv pip install --system --no-cache-dir -r requirements.txt
 
-# Verify critical imports
-RUN python -c "import fastapi, uvicorn, git, github; print('✅ Core dependencies verified')"
+# Verify critical imports including LangSmith/LangChain
+RUN python -c "import fastapi, uvicorn, git, github; print('✅ Core dependencies verified')" && \
+    python -c "import langsmith, langchain_groq, langgraph; print('✅ LangSmith/LangChain dependencies verified')" && \
+    python -c "import langsmith; print(f'📦 LangSmith version: {langsmith.__version__}')" && \
+    python -c "import langchain_core; print(f'📦 LangChain Core version: {langchain_core.__version__}')"
 
 # Copy application code
 COPY . .

@@ -46,6 +46,13 @@ class PromptManager:
         if not LANGSMITH_AVAILABLE:
             print("[LANGSMITH] Client not available - using fallback mode")
             return
+
+        # Load environment variables
+        try:
+            from dotenv import load_dotenv
+            load_dotenv()
+        except ImportError:
+            pass
             
         try:
             api_key = os.getenv('LANGSMITH_API_KEY')
@@ -72,7 +79,7 @@ class PromptManager:
             # Simple connection test - check if we can access the API
             # This is a lightweight test that doesn't require specific resources
             self.enabled = True
-            print("[LANGSMITH] ✅ Connection established - enhanced prompts available")
+            print("[LANGSMITH] SUCCESS Connection established - enhanced prompts available")
             
         except Exception as e:
             print(f"[LANGSMITH] Connection test failed: {e}")
@@ -90,13 +97,13 @@ class PromptManager:
                 except Exception:
                     self.enabled = False
     
-    def get_enhanced_prompt(self, prompt_name: str, fallback_prompt: str, 
+    def get_enhanced_prompt(self, prompt_name: str, fallback_prompt: str,
                           language: str = None, agent_context: Dict = None) -> str:
         """
         Get enhanced prompt from LangSmith Hub with safe fallback.
         
         Args:
-            prompt_name: Hub prompt name (e.g., "security-agent-v1")
+            prompt_name: Hub prompt name (e.g., "security-agent")
             fallback_prompt: Original hardcoded prompt (ALWAYS works)
             language: Programming language for substitution
             agent_context: Additional context for prompt enhancement
@@ -148,8 +155,12 @@ class PromptManager:
             # Build hub prompt name with namespace
             hub_prompt_name = f"code-analysis/{prompt_name}"
             
-            # Attempt to pull prompt
-            prompt_object = self.client.pull_prompt(hub_prompt_name)
+            # Try to pull prompt - first try simple name, then with namespace
+            try:
+                prompt_object = self.client.pull_prompt(prompt_name)  # Try simple name first
+                hub_prompt_name = prompt_name  # Update for logging
+            except Exception:
+                prompt_object = self.client.pull_prompt(hub_prompt_name)  # Try with namespace
             
             if not prompt_object or not hasattr(prompt_object, 'template'):
                 return None

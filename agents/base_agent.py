@@ -14,10 +14,10 @@ load_dotenv()
 
 # LangSmith Integration - Import with fallback
 try:
-    from langsmith import get_enhanced_prompt
+    from custom_langsmith import get_enhanced_prompt
     LANGSMITH_INTEGRATION = True
 except ImportError:
-    # Fallback if langsmith module is not available
+    # Fallback if custom_langsmith module is not available
     def get_enhanced_prompt(prompt_name: str, fallback_prompt: str, **kwargs) -> str:
         return fallback_prompt
     LANGSMITH_INTEGRATION = False
@@ -271,10 +271,10 @@ class BaseLLMAgent(ABC):
         """Get enhanced system prompt using LangSmith if available"""
         # Get the base prompt from the agent
         fallback_prompt = self.get_system_prompt(language)
-        
+
         # Generate LangSmith prompt name based on agent type
-        prompt_name = f"{self.agent_type}-agent-v1"
-        
+        prompt_name = f"{self.agent_type}-agent"
+
         # Try to get enhanced prompt from LangSmith Hub
         if LANGSMITH_INTEGRATION:
             try:
@@ -599,6 +599,10 @@ REMEMBER: Return empty issues array if no real {self.agent_type} issues exist. Q
 
         for issue in issues:
             line_number = issue.get('line_number', 0)
+
+            # Handle None line_number
+            if line_number is None:
+                line_number = 0
 
             # Validate line number
             if line_number <= 0 or line_number > len(code_lines):

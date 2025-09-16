@@ -373,7 +373,7 @@ class LangGraphCQI:
     def _print_results(self, result: Dict[str, Any], detailed: bool = False):
         """Print analysis results with rich formatting"""
         if 'error' in result:
-            print(f"❌ Error: {result['error']}")
+            print(f"ERROR: {result['error']}")
             return
         
         is_directory = 'languages' in result
@@ -470,8 +470,8 @@ async def main():
         return
     
     if len(sys.argv) < 3 or sys.argv[1] not in ['analyze', 'workflow', 'agents']:
-        print("🤖 LangGraph Multi-Agent Code Quality Intelligence")
-        print("═" * 60)
+        print("LangGraph Multi-Agent Code Quality Intelligence")
+        print("=" * 60)
         print("Usage:")
         print("  python main.py analyze <path> [options]     - Analyze code with LangGraph")
         print("  python main.py interactive <codebase_path>  - Interactive Q&A session")
@@ -493,19 +493,19 @@ async def main():
         print("  python main.py interactive /path/to/codebase")
         print()
         print("LangGraph Features:")
-        print("  🧠 Intelligent agent dependency management")
-        print("  🔄 State-aware workflow orchestration") 
-        print("  📊 Cross-agent insight sharing")
-        print("  🚦 Dynamic routing and conditional execution")
-        print("  📈 Real-time progress tracking")
+        print("  - Intelligent agent dependency management")
+        print("  - State-aware workflow orchestration") 
+        print("  - Cross-agent insight sharing")
+        print("  - Dynamic routing and conditional execution")
+        print("  - Real-time progress tracking")
         return
     
     command = sys.argv[1]
     
     if command == 'workflow':
-        print("🔄 LangGraph Workflow Architecture")
-        print("═" * 50)
-        print("🚦 Agent Dependencies:")
+        print("LangGraph Workflow Architecture")
+        print("=" * 50)
+        print("Agent Dependencies:")
         print("   Security Agent     → (No dependencies)")
         print("   Complexity Agent   → (No dependencies)")  
         print("   Performance Agent  → Complexity insights")
@@ -524,15 +524,15 @@ async def main():
         return
     
     if command == 'agents':
-        print("🤖 Available LangGraph Agents")
-        print("═" * 50)
+        print("Available LangGraph Agents")
+        print("=" * 50)
         agents = [
-            ("🛡️ Security", "Vulnerability detection, hardcoded secrets, injection attacks"),
-            ("🔧 Complexity", "Code structure analysis, SOLID principles, complexity metrics"),
-            ("⚡ Performance", "Algorithm efficiency, bottlenecks, optimization opportunities"),  
-            ("🧪 Testing", "Test coverage analysis, missing tests, test quality"),
-            ("📚 Documentation", "Missing docstrings, API documentation, code comments"),
-            ("🔄 Duplication", "Code reuse analysis, repeated patterns, refactoring opportunities")
+            ("Security", "Vulnerability detection, hardcoded secrets, injection attacks"),
+            ("Complexity", "Code structure analysis, SOLID principles, complexity metrics"),
+            ("Performance", "Algorithm efficiency, bottlenecks, optimization opportunities"),  
+            ("Testing", "Test coverage analysis, missing tests, test quality"),
+            ("Documentation", "Missing docstrings, API documentation, code comments"),
+            ("Duplication", "Code reuse analysis, repeated patterns, refactoring opportunities")
         ]
         
         for name, desc in agents:
@@ -562,12 +562,12 @@ async def main():
             try:
                 parallel_workers = int(sys.argv[i + 1])
             except ValueError:
-                print("⚠️ Invalid parallel workers value, using default: 4")
+                print("WARNING: Invalid parallel workers value, using default: 4")
         elif arg == '--max-files' and i + 1 < len(sys.argv):
             try:
                 max_files = int(sys.argv[i + 1])
             except ValueError:
-                print("⚠️ Invalid max-files value, ignoring limit")
+                print("WARNING: Invalid max-files value, ignoring limit")
     
     # Initialize CQI system
     cqi = LangGraphCQI(

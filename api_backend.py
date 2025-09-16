@@ -196,9 +196,15 @@ app = FastAPI(
     description="Progressive analysis with real-time updates",
     version="2.1.0"
 )
+origins = [
+    "http://localhost:3000",   # frontend dev server
+    "http://127.0.0.1:3000",
+    "http://localhost:8080",   # vite (if you use it)
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -1020,7 +1026,7 @@ if __name__ == "__main__":
     import uvicorn
     print("Starting Enhanced LangGraph Code Quality Intelligence API...")
     print("Progressive analysis with real-time updates enabled")
-    print("ðŸ”— CORS enabled for all origins")
+    print("CORS enabled for frontend origins")
     # Use PORT environment variable for deployment
     port = int(os.environ.get("PORT", 8000))
     print(f"Access test endpoint at: http://localhost:{port}/api/test")

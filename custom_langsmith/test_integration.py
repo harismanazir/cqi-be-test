@@ -42,7 +42,7 @@ def run_basic_test():
     
     # Test with LangSmith (should work regardless)
     enhanced_prompt = get_enhanced_prompt(
-        prompt_name="test-agent-v1",
+        prompt_name="test-agent",
         fallback_prompt=test_prompt,
         language="python"
     )
@@ -85,12 +85,12 @@ def run_basic_test():
     start_time = time.time()
     
     # First call
-    prompt1 = get_enhanced_prompt("cache-test-v1", "Test prompt", "python")
+    prompt1 = get_enhanced_prompt("cache-test", "Test prompt", "python")
     first_time = time.time() - start_time
     
     # Second call (should be cached)
     start_time = time.time()
-    prompt2 = get_enhanced_prompt("cache-test-v1", "Test prompt", "python")
+    prompt2 = get_enhanced_prompt("cache-test", "Test prompt", "python")
     second_time = time.time() - start_time
     
     if prompt1 == prompt2:
@@ -135,11 +135,11 @@ def run_agent_specific_tests():
     print("=" * 40)
     
     agents_to_test = [
-        ('SecurityAgent', 'security-agent-v1'),
-        ('PerformanceAgent', 'performance-agent-v1'),
-        ('ComplexityAgent', 'complexity-agent-v1'),
-        ('DocumentationAgent', 'documentation-agent-v1'),
-        ('DuplicationAgent', 'duplication-agent-v1')
+        ('SecurityAgent', 'security-agent'),
+        ('PerformanceAgent', 'performance-agent'),
+        ('ComplexityAgent', 'complexity-agent'),
+        ('DocumentationAgent', 'documentation-agent'),
+        ('DuplicationAgent', 'duplication-agent')
     ]
     
     results = {}
@@ -212,9 +212,9 @@ def run_performance_test():
     from langsmith import get_enhanced_prompt
     
     test_cases = [
-        ("security-agent-v1", "Test security prompt"),
-        ("performance-agent-v1", "Test performance prompt"),  
-        ("complexity-agent-v1", "Test complexity prompt")
+        ("security-agent", "Test security prompt"),
+        ("performance-agent", "Test performance prompt"),  
+        ("complexity-agent", "Test complexity prompt")
     ]
     
     print("Testing prompt retrieval performance...")
@@ -269,7 +269,7 @@ def main():
         elif test_type == "full":
             run_full_test_suite()
         else:
-            print("Usage: python -m langsmith.test_integration [basic|agents|performance|full]")
+            print("Usage: python -m custom_langsmith.test_integration [basic|agents|performance|full]")
     else:
         # Default to basic test
         run_basic_test()
