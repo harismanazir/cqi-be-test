@@ -370,7 +370,7 @@ Examples:
     
     # Analysis options
     parser.add_argument('--detailed', action='store_true', help='Show detailed issues report')
-    parser.add_argument('--agents', type=str, help='Comma-separated list of agents (security,performance,complexity,documentation,testing,duplication)')
+    parser.add_argument('--agents', type=str, help='Comma-separated list of agents (security,performance,complexity,documentation)')
     parser.add_argument('--max-files', type=int, help='Maximum number of files to analyze')
     
     # System options
@@ -403,7 +403,7 @@ async def main():
     selected_agents = None
     if args.agents:
         selected_agents = [agent.strip() for agent in args.agents.split(',')]
-        valid_agents = {'security', 'performance', 'complexity', 'documentation', 'testing', 'duplication'}
+        valid_agents = {'security', 'performance', 'complexity', 'documentation'}
         invalid_agents = [a for a in selected_agents if a not in valid_agents]
         if invalid_agents:
             print(f"❌ Invalid agents: {', '.join(invalid_agents)}")

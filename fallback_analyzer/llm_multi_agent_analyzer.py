@@ -17,7 +17,6 @@ from agents import (
     PerformanceAgent,
     ComplexityAgent,
     DocumentationAgent,
-    DuplicationAgent,
     LanguageDetector
 )
 
@@ -73,10 +72,9 @@ class LLMMultiAgentAnalyzer:
         # Initialize agents with optional RAG context
         self.agents = {
             'security': SecurityAgent(rag_analyzer=self.rag_analyzer),
-            'performance': PerformanceAgent(rag_analyzer=self.rag_analyzer), 
+            'performance': PerformanceAgent(rag_analyzer=self.rag_analyzer),
             'complexity': ComplexityAgent(rag_analyzer=self.rag_analyzer),
-            'documentation': DocumentationAgent(rag_analyzer=self.rag_analyzer),
-            'duplication': DuplicationAgent(rag_analyzer=self.rag_analyzer)
+            'documentation': DocumentationAgent(rag_analyzer=self.rag_analyzer)
         }
         
         self.rag_enabled = enable_rag and RAG_AVAILABLE
@@ -683,7 +681,7 @@ async def main():
         print("  --qa <codebase_path>    Start interactive Q&A session")
         print("\nOptional Arguments:")
         print("  --detailed              Show top 20 issues ordered by severity")
-        print("  --agents AGENTS         Specific agents (security,performance,complexity,documentation,duplication)")
+        print("  --agents AGENTS         Specific agents (security,performance,complexity,documentation)")
         print("  --rag                   Enable RAG system for enhanced context")
         print("  --no-cache              Disable intelligent caching")
         print("  --parallel N            Set parallel workers (default: 4)")

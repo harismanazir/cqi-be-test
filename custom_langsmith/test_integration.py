@@ -138,8 +138,7 @@ def run_agent_specific_tests():
         ('SecurityAgent', 'security-agent'),
         ('PerformanceAgent', 'performance-agent'),
         ('ComplexityAgent', 'complexity-agent'),
-        ('DocumentationAgent', 'documentation-agent'),
-        ('DuplicationAgent', 'duplication-agent')
+        ('DocumentationAgent', 'documentation-agent')
     ]
     
     results = {}
@@ -148,14 +147,13 @@ def run_agent_specific_tests():
         print(f"\n[AGENT TEST] {agent_name}")
         try:
             # Import the agent
-            from agents import SecurityAgent, PerformanceAgent, ComplexityAgent, DocumentationAgent, DuplicationAgent
+            from agents import SecurityAgent, PerformanceAgent, ComplexityAgent, DocumentationAgent
             
             agent_classes = {
                 'SecurityAgent': SecurityAgent,
                 'PerformanceAgent': PerformanceAgent,
                 'ComplexityAgent': ComplexityAgent,
-                'DocumentationAgent': DocumentationAgent,
-                'DuplicationAgent': DuplicationAgent
+                'DocumentationAgent': DocumentationAgent
             }
             
             agent_class = agent_classes[agent_name]

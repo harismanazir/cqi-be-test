@@ -511,7 +511,6 @@ async def main():
         print("   Performance Agent  → Complexity insights")
         print("   Testing Agent      → Security + Complexity insights")
         print("   Documentation Agent → Complexity insights")
-        print("   Duplication Agent  → Complexity insights")
         print()
         print("📊 Workflow Flow:")
         print("   1. Initialize Analysis")
@@ -532,7 +531,6 @@ async def main():
             ("Performance", "Algorithm efficiency, bottlenecks, optimization opportunities"),  
             ("Testing", "Test coverage analysis, missing tests, test quality"),
             ("Documentation", "Missing docstrings, API documentation, code comments"),
-            ("Duplication", "Code reuse analysis, repeated patterns, refactoring opportunities")
         ]
         
         for name, desc in agents:

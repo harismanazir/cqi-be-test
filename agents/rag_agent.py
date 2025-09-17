@@ -580,7 +580,6 @@ class RAGCodeAnalyzer:
             'performance': f"performance optimization algorithms efficiency {language}",
             'complexity': f"code complexity readability maintainability {language}",
             'documentation': f"documentation comments docstrings API {language}",
-            'duplication': f"duplicate code similar patterns repeated {language}"
         }
 
         # Enhance query with knowledge base patterns
@@ -606,7 +605,7 @@ class RAGCodeAnalyzer:
         context_parts = []
 
         # Add agent-specific knowledge context
-        if relevant_patterns and agent_type != 'duplication':  # Skip for duplication agent
+        if relevant_patterns:
             knowledge_context = self._build_knowledge_context(agent_type, language, relevant_patterns)
             if knowledge_context:
                 context_parts.append(f"Agent-specific knowledge for {agent_type} analysis:\n{knowledge_context}")

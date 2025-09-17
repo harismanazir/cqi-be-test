@@ -114,10 +114,9 @@ class EnhancedRateLimitManager:
         # Priority order for agents when resources are limited
         agent_priority = {
             'security': 1,      # Highest priority
-            'complexity': 2,    
-            'performance': 3,   
-            'documentation': 4, 
-            'duplication': 5    # Lowest priority
+            'complexity': 2,
+            'performance': 3,
+            'documentation': 4
         }
         
         # Sort by priority
