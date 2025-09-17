@@ -196,15 +196,11 @@ app = FastAPI(
     description="Progressive analysis with real-time updates",
     version="2.1.0"
 )
-origins = [
-    "http://localhost:3000",   # frontend dev server
-    "http://127.0.0.1:3000",
-    "http://localhost:8080",   # vite (if you use it)
-]
+
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
