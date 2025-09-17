@@ -843,9 +843,11 @@ CRITICAL REQUIREMENTS:
         
         # Create numbered code for better line reference
         numbered_lines = []
-        for i, line in enumerate(code.split('\n'), 1):
+        code_lines = code.split('\n')
+        for i, line in enumerate(code_lines, 1):
             numbered_lines.append(f"{i:4d}: {line}")
         numbered_code = '\n'.join(numbered_lines)
+        total_lines = len(code_lines)
 
         enhanced_prompt = f"""
 {system_prompt}
@@ -856,7 +858,7 @@ STATIC ANALYSIS RESULTS ({len(static_issues)} issues found):
 CODE TO ANALYZE:
 File: {file_path}
 Language: {language}
-Total Lines: {len(code.split('\n'))}
+Total Lines: {total_lines}
 
 Code (with line numbers):
 ```{language}
