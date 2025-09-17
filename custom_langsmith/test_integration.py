@@ -21,7 +21,7 @@ def run_basic_test():
     # Test 1: Import test
     print("[TEST 1] Testing imports...")
     try:
-        from langsmith import get_enhanced_prompt, get_langsmith_status
+        from custom_langsmith import get_enhanced_prompt, get_langsmith_status
         print("✅ LangSmith module imports successful")
     except Exception as e:
         print(f"❌ Import failed: {e}")

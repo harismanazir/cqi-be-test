@@ -34,7 +34,7 @@ except ImportError:
 class GroqLLM:
     """Real Groq LLM interface with enhanced error handling"""
     
-    def __init__(self, model_name: str = "llama-3.1-8b-instant"):
+    def __init__(self, model_name: str = "llama-3.3-70b-versatile"):
         self.model_name = model_name
         self.call_count = 0
         

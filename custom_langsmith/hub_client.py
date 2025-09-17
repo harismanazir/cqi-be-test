@@ -140,18 +140,6 @@ class LangSmithHubClient:
 
 {base_template}
 
-# LANGSMITH ENHANCEMENTS:
-# [*] Optimized for cross-agent context sharing
-# [*] Enhanced accuracy through iterative refinement
-# [*] Better error handling and edge cases
-# [*] Improved JSON response formatting
-# [*] More precise validation requirements
-
-# METADATA:
-# - Version: v1.1-langsmith-enhanced
-# - Last Updated: {datetime.now().strftime('%Y-%m-%d')}
-# - Enhanced Features: Context awareness, improved accuracy
-# - Fallback Compatible: Yes (works with original system)
 """
             
             enhanced[prompt_name] = {

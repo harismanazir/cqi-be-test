@@ -528,38 +528,70 @@ class ComplexityAgent(BaseLLMAgent):
 
     def get_system_prompt(self, language: str) -> str:
         """Prompt for enhancing static analysis results"""
-        return f"""You are a COMPLEXITY analysis specialist for {language} code.
+        return f"""You are a CODE COMPLEXITY specialist for {language} code.
 
-Your role is to enhance static analysis findings with clearer explanations and specific refactoring suggestions.
+CRITICAL ACCURACY REQUIREMENTS:
+- ONLY report complexity issues that actually exist and measurably impact maintainability
+- MANUALLY count lines, nesting levels, and parameters before reporting
+- If the code is well-structured and readable, return empty issues array []
+- Do not report subjective or minor complexity issues
+- Focus ONLY on objectively measurable complexity problems
 
-RULES:
-- Do NOT invent new issues, only enhance the ones provided.
-- Provide practical, concise fixes.
-- Severity should reflect actual impact: low, medium, or high.
-- Tags should always include ["complexity"].
-- Evidence must be plain text (no quotes, no code snippets).
+COMPLEXITY THRESHOLDS - Only report if these thresholds are ACTUALLY exceeded:
+- Long functions/methods: >50 lines of actual code (excluding comments/blank lines)
+- Deep nesting levels: >5 levels of indentation (count spaces or braces)
+- Too many parameters: >7 parameters in a single function
+- Very long lines: >120 characters that hurt readability
+- High cyclomatic complexity: >10 decision points (if/else/for/while/switch)
 
-INPUT:
-You will be given raw static issues plus the source code.
+MANDATORY VERIFICATION PROCESS:
+1. For long functions: MANUALLY count non-empty, non-comment lines in each function
+2. For deep nesting: MANUALLY count indentation levels at the deepest point
+3. For parameters: MANUALLY count comma-separated parameters in function signatures
+4. For line length: MANUALLY check character count of each line
+5. ONLY report if manual verification confirms the threshold is exceeded
 
-RESPONSE FORMAT (valid JSON only):
+MEASUREMENTS TO INCLUDE (with actual counts):
+- Function length: "Function has X lines of code" (where X is manually counted)
+- Nesting depth: "Code nested X levels deep at line Y" (where X is manually counted)
+- Parameter count: "Function has X parameters" (where X is manually counted)
+- Line length: "Line X has Y characters" (where Y is manually counted)
+
+EXAMPLES OF ACCURATE REPORTING:
+- GOOD: "Function processData has 75 lines of code" (if manually counted to be 75+)
+- BAD: "Function processData has 75 lines of code" (if actually only 20 lines)
+- GOOD: "Code nested 6 levels deep at line 45" (if manually verified to be 6+ levels)
+- BAD: "Code nested 5 levels deep" (if actually only 3 levels)
+
+DO NOT report:
+- Security vulnerabilities
+- Performance issues
+- Documentation problems
+- Minor style preferences
+- Theoretical complexity without manual verification
+- Issues where manual count doesn't exceed thresholds
+
+RESPONSE FORMAT - Valid JSON only:
 {{
   "issues": [
     {{
       "severity": "high|medium|low",
-      "title": "Restated issue title",
-      "description": "Expanded explanation of why this is a problem",
+      "title": "Specific complexity issue with verified measurement",
+      "description": "Detailed explanation with manually verified metrics",
       "line_number": 123,
-      "suggestion": "Concrete fix/refactor recommendation",
+      "suggestion": "Specific refactoring recommendation",
       "category": "complexity",
-      "tags": ["complexity"],
-      "evidence": "Simple evidence summary"
+      "evidence": "Manually verified measurement without special characters"
     }}
   ],
-  "metrics": {{"complexity_score": 0.7}},
-  "confidence": 0.85
-}}"""
+  "metrics": {{"complexity_score": 0.6}},
+  "confidence": 0.90
+}}
 
+CRITICAL: For the "evidence" field, provide simple manually verified measurements only - NO quotes, code snippets, or special characters.
+
+FINAL REMINDER: If manual verification shows the code is well-structured and under thresholds, return empty issues array. Accuracy is more important than finding issues."""
+    
     async def analyze(self, code: str, file_path: str, language: str):
         """Run static analysis + LLM enrichment"""
         static_issues = self._run_static_analysis(code, language)
