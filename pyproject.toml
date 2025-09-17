@@ -12,7 +12,7 @@ dependencies = [
     "python-multipart==0.0.6",
     # Essential AI packages
     "langchain-groq>=0.1.9",
-    "langchain-core>=0.2.26",
+    "langchain-core>=0.3.76",
     "langgraph>=0.1.1",
     "langsmith>=0.0.87",
     # Environment utilities

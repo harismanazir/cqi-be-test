@@ -50,11 +50,15 @@ uv pip install -r requirements.txt
 Create a `.env` file with your API keys:
 
 ```bash
+#recommeded : put all three in the .env file for full functionality
 # Required: Groq API key for LLM inference
 GROQ_API_KEY=your_groq_api_key_here
 
 # Optional: For GitHub repository analysis
 GITHUB_TOKEN=your_github_token_here
+
+# Optional: For LangSmith integration
+LANGSMITH_API_KEY=your_langsmith_api_key_here
 ```
 
 **Get your Groq API key:** Visit [console.groq.com](https://console.groq.com) and create a free account.
@@ -201,7 +205,107 @@ python main.py interactive .
 - **Detailed Issue Reports**: Line-by-line findings with suggestions
 - **Language Statistics**: Multi-language project insights
 
-## 🔧 Configuration Options
+## 📊 LangSmith Integration & Tracing
+
+### 🎯 What is LangSmith?
+LangSmith is an advanced observability platform for LLM applications that provides detailed tracing, monitoring, and prompt management for our multi-agent code analysis workflow.
+
+### 🚀 Features Enabled
+- **🔍 Comprehensive Tracing**: Every agent execution and LLM call is traced
+- **📈 Performance Monitoring**: Track processing times, token usage, and success rates
+- **🔗 Workflow Visualization**: See agent dependencies and execution flow
+- **🧠 Enhanced Prompt Management**: Dynamic prompt optimization based on analysis patterns
+- **📊 Session Tracking**: Group related analyses for better insights
+
+### 🛠️ Setup LangSmith (Optional)
+
+1. **Create LangSmith Account**
+   ```bash
+   # Visit https://smith.langchain.com and create account
+   ```
+
+2. **Configure Environment Variables**
+   ```bash
+   # Add to your .env file
+   LANGSMITH_TRACING=true
+   LANGSMITH_API_KEY=your_langsmith_api_key_here
+   LANGCHAIN_PROJECT=code-analysis-workflow
+   ```
+
+3. **Verify Integration**
+   ```bash
+   # Run analysis - LangSmith traces will be automatically captured
+   python main.py analyze your-code.py --detailed
+   ```
+
+### 📈 Monitoring & Analytics
+
+#### **Real-time Tracing**
+```bash
+# Every analysis creates detailed traces showing:
+# - Individual agent execution times
+# - LLM token usage and costs
+# - Success/failure rates
+# - Cross-agent data flow
+```
+
+#### **Session URLs**
+Each analysis provides direct links to LangSmith dashboard:
+```
+[SUMMARY] 🎯 LangSmith Dashboard:
+[SUMMARY]   📊 Project: https://smith.langchain.com/projects/code-analysis-workflow
+[SUMMARY]   🔗 Session: https://smith.langchain.com/projects/.../sessions/abc-123
+[SUMMARY]   📈 All Runs: https://smith.langchain.com/projects/.../runs
+```
+
+#### **Agent Performance Tracking**
+Monitor individual agent performance:
+- **Security Agent**: Execution time, issues found, confidence scores
+- **Complexity Agent**: Static analysis + LLM enhancement metrics
+- **Performance Agent**: Pattern detection success rates
+- **Documentation Agent**: Coverage analysis accuracy
+
+### 🧠 Enhanced Prompt Management
+
+#### **Dynamic Prompt Optimization**
+```python
+# Located in custom_langsmith/ folder
+├── prompt_templates.py     # Agent-specific prompt templates
+├── enhanced_prompts.py     # LangSmith integration
+├── test_integration.py     # Testing framework
+└── __init__.py            # Module initialization
+```
+
+#### **Agent-Specific Prompts**
+- **Security Agent**: Specialized for vulnerability detection
+- **Complexity Agent**: Optimized for code structure analysis
+- **Performance Agent**: Tuned for optimization opportunities
+- **Documentation Agent**: Enhanced for doc quality assessment
+
+#### **Automatic Fallbacks**
+```python
+# If LangSmith is unavailable, system automatically falls back to:
+# - Local prompt templates
+# - Standard tracing (console output)
+# - Basic error handling
+```
+
+### 📊 Workflow Visualization
+
+#### **LangGraph Flow Tracking**
+LangSmith captures the complete multi-agent workflow:
+```
+initialize → setup_rag → route_agents → [agents] → aggregate_results → finalize
+```
+
+#### **Agent Dependencies**
+Visual representation of how agents share insights:
+- **Security** → Independent analysis
+- **Complexity** → Feeds into Performance & Documentation
+- **Performance** → Uses Complexity insights
+- **Documentation** → Enhanced by Complexity findings
+
+### 🔧 Configuration Options
 
 ```bash
 # View workflow architecture
@@ -212,6 +316,20 @@ python main.py agents
 
 # All available options
 python main.py --help
+```
+
+### 🧪 Testing LangSmith Integration
+
+```bash
+# Test LangSmith connectivity and enhanced prompts
+cd custom_langsmith/
+python test_integration.py
+
+# Expected output:
+# ✅ LangSmith Integration Test Results
+# 📊 Connection Status: Connected
+# 🎯 Enhanced Prompts: 4/4 agents ready
+# 🔍 Trace Capture: Working
 ```
 
 ## 🐳 Docker Support

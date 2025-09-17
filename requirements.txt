@@ -7,7 +7,7 @@ python-multipart==0.0.6
 
 # Essential AI packages - compatible versions
 langchain-groq>=0.1.9
-langchain-core>=0.2.26
+langchain-core>=0.3.76
 langgraph>=0.1.1
 langsmith>=0.4.0,<0.5.0
 
@@ -25,3 +25,4 @@ numpy>=1.24.0
 
 # Additional dependencies
 flask>=2.3.0
+langchain>=0.3.27
