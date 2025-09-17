@@ -29,12 +29,19 @@ pip install uv
 
 ### 2. Clone and Setup
 
+**Quick Setup (Recommended):**
 ```bash
 # Clone the repository
 git clone <your-repo-url>
 cd cqi
 
-# Create virtual environment and install dependencies
+# Install all dependencies (uv will auto-create venv and install everything)
+uv sync
+```
+
+**Alternative Setup (if uv sync doesn't work):**
+```bash
+# Create virtual environment and install dependencies manually
 uv venv --python 3.11
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
