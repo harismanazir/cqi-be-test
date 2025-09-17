@@ -17,7 +17,7 @@ from datetime import datetime
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from agents.base_agent import GroqLLM, LanguageDetector
+from agents.base_agent import TracedGroqLLM, LanguageDetector
 from agents.rag_agent import RAGCodeAnalyzer
 from workflow.graph import LangGraphMultiAgentAnalyzer
 
@@ -50,7 +50,7 @@ class EnhancedQAAgent:
     
     def __init__(self, codebase_path: str):
         self.codebase_path = codebase_path
-        self.llm = GroqLLM()
+        self.llm = TracedGroqLLM()
         self.rag_analyzer = None
         self.langgraph_analyzer = None
         self.conversation_context = None

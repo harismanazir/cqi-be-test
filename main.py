@@ -20,7 +20,7 @@ from agents.base_agent import LanguageDetector
 from rate_limit_manager import rate_limit_manager
 
 # Import legacy analyzer for fallback
-from llm_multi_agent_analyzer import LLMMultiAgentAnalyzer
+from fallback_analyzer.llm_multi_agent_analyzer import LLMMultiAgentAnalyzer
 
 class LangGraphCQI:
     """Main LangGraph Code Quality Intelligence System"""

@@ -1,165 +1,189 @@
 """
-LangGraph Workflow Graph for Multi-Agent Code Analysis
-Implements intelligent agent orchestration with dependency management
+Fixed LangGraph Multi-Agent Analyzer with Proper Graph Visualization in LangSmith
 """
 
 import os
 import time
 import asyncio
+import uuid
 from typing import Dict, List, Any, Optional
+from pathlib import Path
+
+# LangGraph imports
 try:
     from langgraph.graph import StateGraph, END
     from langgraph.checkpoint.memory import MemorySaver
-    LANGGRAPH_NEW = True
+    from langgraph.pregel import Pregel
 except ImportError:
-    try:
-        # Older LangGraph version compatibility
-        from langgraph.graph import StateGraph
-        from langgraph.graph.state import END
-        MemorySaver = None
-        LANGGRAPH_NEW = False
-    except ImportError:
-        raise ImportError("LangGraph is not installed. Please install with: pip install langgraph")
+    raise ImportError("Install LangGraph: pip install langgraph")
+
+# LangSmith tracing
+LANGSMITH_AVAILABLE = False
+try:
+    from langsmith import traceable, trace
+    from langsmith.client import Client as LangSmithClient
+    from langsmith.run_helpers import get_current_run_tree
+    LANGSMITH_AVAILABLE = True
+except ImportError:
+    def traceable(name: str = None, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+    def trace(*args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+
+# Workflow components
 from workflow.state import (
-    WorkflowState, 
-    AgentResult, 
-    CodeAnalysisInput,
-    get_ready_agents, 
-    should_continue_workflow,
-    add_agent_insights,
-    get_cross_agent_context,
-    initialize_workflow_state
+    WorkflowState, AgentResult, CodeAnalysisInput,
+    get_ready_agents, should_continue_workflow,
+    add_agent_insights, get_cross_agent_context,
+    initialize_workflow_state, create_langsmith_metadata
 )
 
-# Import existing agents
-from agents import (
-    SecurityAgent,
-    PerformanceAgent, 
-    ComplexityAgent,
-    DocumentationAgent,
-    DuplicationAgent
-)
-# Remove QA agent import for now - will use existing agents only
+# Agents
+from agents import SecurityAgent, PerformanceAgent, ComplexityAgent, DocumentationAgent
+
 
 class LangGraphMultiAgentAnalyzer:
-    """LangGraph-powered multi-agent code analyzer with intelligent orchestration"""
+    """Multi-agent analyzer with proper LangSmith graph visualization"""
     
-    def __init__(self, enable_rag: bool = True, enable_cache: bool = True):
+    def __init__(self, enable_rag: bool = True, enable_cache: bool = True, 
+                 langsmith_project: str = "code-analysis-workflow"):
         self.enable_rag = enable_rag
         self.enable_cache = enable_cache
+        self.langsmith_project = langsmith_project
         
-        # Initialize intelligent caching system
+        # Initialize LangSmith
+        self.langsmith_client = None
+        if LANGSMITH_AVAILABLE:
+            try:
+                self.langsmith_client = LangSmithClient()
+                print(f"[WORKFLOW] LangSmith Project: {langsmith_project}")
+                print(f"[WORKFLOW] Dashboard: https://smith.langchain.com/projects/{langsmith_project}")
+            except Exception as e:
+                print(f"[WORKFLOW] LangSmith setup failed: {e}")
+        
+        # Initialize other components
+        self._setup_components()
+        
+        # Build workflow with proper graph structure
+        self.workflow = self._build_workflow()
+        self._print_workflow_info()
+    
+    def _setup_components(self):
+        """Setup cache, RAG, and agents"""
+        # Cache setup
         self.cache = None
-        if enable_cache:
+        self.cache_enabled = False
+        if self.enable_cache:
             try:
                 from agents.intelligent_cache import get_cache
                 self.cache = get_cache()
-                self.cache.cleanup_old_cache()
                 self.cache_enabled = True
-                print("[LANGGRAPH] Intelligent caching system enabled")
             except ImportError:
-                self.cache_enabled = False
-                print("[LANGGRAPH] Caching system not available")
-        else:
-            self.cache_enabled = False
+                pass
         
-        # Initialize agents (reuse existing implementations)
+        # RAG setup
         self.rag_analyzer = None
-        if enable_rag:
+        if self.enable_rag:
             try:
                 from agents.rag_agent import RAGCodeAnalyzer
                 self.rag_analyzer = RAGCodeAnalyzer()
-                print("[RAG] RAG system enabled for LangGraph workflow")
             except ImportError:
-                print("[WARN] RAG system not available, continuing without RAG")
+                pass
         
+        # Agents setup
         self.agents = {
             'security': SecurityAgent(rag_analyzer=self.rag_analyzer),
-            'performance': PerformanceAgent(rag_analyzer=self.rag_analyzer), 
+            'performance': PerformanceAgent(rag_analyzer=self.rag_analyzer),
             'complexity': ComplexityAgent(rag_analyzer=self.rag_analyzer),
-            'documentation': DocumentationAgent(rag_analyzer=self.rag_analyzer),
-            'duplication': DuplicationAgent(rag_analyzer=self.rag_analyzer),
-            # Remove testing agent for now - focus on core analysis agents
+            'documentation': DocumentationAgent(rag_analyzer=self.rag_analyzer)
         }
-        
-        # Memory for workflow state persistence (if available) - initialize first
-        self.memory = MemorySaver() if MemorySaver else None
-        
-        # Build LangGraph workflow
-        self.workflow = self._build_workflow()
-        
-        print(f"[LANGGRAPH] Multi-agent workflow initialized with {len(self.agents)} agents")
-        print(f"[LANGGRAPH] Dependency-aware execution enabled")
     
-    def _build_workflow(self) -> StateGraph:
-        """Build the LangGraph workflow with intelligent routing"""
+    def _build_workflow(self) -> Pregel:
+        """Build workflow with proper structure for LangSmith visualization"""
         
-        # Create state graph
+        # Create state graph with proper naming
         workflow = StateGraph(WorkflowState)
         
-        # Add workflow nodes
-        workflow.add_node("initialize_analysis", self._initialize_analysis)
+        # Add nodes with clear, simple names (important for visualization)
+        workflow.add_node("initialize", self._initialize)
         workflow.add_node("setup_rag", self._setup_rag)
         workflow.add_node("route_agents", self._route_agents)
-        workflow.add_node("run_security_agent", self._run_security_agent)
-        workflow.add_node("run_complexity_agent", self._run_complexity_agent)
-        workflow.add_node("run_performance_agent", self._run_performance_agent)
-# Remove testing agent node for now
-        workflow.add_node("run_documentation_agent", self._run_documentation_agent)
-        workflow.add_node("run_duplication_agent", self._run_duplication_agent)
+        workflow.add_node("security_agent", self._run_security_agent)
+        workflow.add_node("complexity_agent", self._run_complexity_agent)
+        workflow.add_node("performance_agent", self._run_performance_agent)
+        workflow.add_node("documentation_agent", self._run_documentation_agent)
         workflow.add_node("aggregate_results", self._aggregate_results)
-        workflow.add_node("finalize_analysis", self._finalize_analysis)
+        workflow.add_node("finalize", self._finalize)
         
-        # Define workflow edges with intelligent routing
-        workflow.set_entry_point("initialize_analysis")
+        # Set entry point
+        workflow.set_entry_point("initialize")
         
-        # Linear initialization flow
-        workflow.add_edge("initialize_analysis", "setup_rag")
+        # Linear flow for initialization
+        workflow.add_edge("initialize", "setup_rag")
         workflow.add_edge("setup_rag", "route_agents")
         
-        # Conditional routing from route_agents to individual agents
+        # Conditional routing to agents
         workflow.add_conditional_edges(
             "route_agents",
-            self._determine_next_agents,
+            self._determine_next_agent,
             {
-                "security": "run_security_agent",
-                "complexity": "run_complexity_agent", 
-                "performance": "run_performance_agent",
-# Remove testing route for now
-                "documentation": "run_documentation_agent",
-                "duplication": "run_duplication_agent",
+                "security": "security_agent",
+                "complexity": "complexity_agent",
+                "performance": "performance_agent", 
+                "documentation": "documentation_agent",
                 "aggregate": "aggregate_results"
             }
         )
         
-        # Agent completion flows - route back to route_agents or aggregate
-        for agent_name in ['security', 'complexity', 'performance', 'documentation', 'duplication']:
+        # Agent completion routing back to router or aggregation
+        for agent_node in ["security_agent", "complexity_agent", "performance_agent", "documentation_agent"]:
             workflow.add_conditional_edges(
-                f"run_{agent_name}_agent",
+                agent_node,
                 self._agent_completion_router,
                 {
-                    "continue": "route_agents",    # More agents to run
-                    "aggregate": "aggregate_results"  # All done, aggregate
+                    "continue": "route_agents",
+                    "aggregate": "aggregate_results"
                 }
             )
         
-        # Final flow
-        workflow.add_edge("aggregate_results", "finalize_analysis")
-        workflow.add_edge("finalize_analysis", END)
+        # Final edges
+        workflow.add_edge("aggregate_results", "finalize")
+        workflow.add_edge("finalize", END)
         
-        if self.memory:
-            return workflow.compile(checkpointer=self.memory)
-        else:
-            return workflow.compile()
+        # Compile with checkpointer for proper state tracking
+        compiled_workflow = workflow.compile(
+            checkpointer=MemorySaver() if MemorySaver else None
+        )
+        
+        return compiled_workflow
+    
+    def _print_workflow_info(self):
+        """Print workflow structure information"""
+        print(f"[WORKFLOW] Workflow initialized")
+        print(f"[WORKFLOW] Nodes: initialize -> setup_rag -> route_agents -> [agents] -> aggregate_results -> finalize")
+        print(f"[WORKFLOW] Available agents: {', '.join(self.agents.keys())}")
+        
+        # Print the workflow graph structure for debugging
+        if hasattr(self.workflow, 'get_graph'):
+            try:
+                graph_structure = self.workflow.get_graph()
+                print(f"[WORKFLOW] Graph nodes: {list(graph_structure.nodes.keys())}")
+                print(f"[WORKFLOW] Graph edges: {len(graph_structure.edges)} connections")
+            except Exception as e:
+                print(f"[WORKFLOW] Could not retrieve graph structure: {e}")
     
     # ============ WORKFLOW NODES ============
     
-    async def _initialize_analysis(self, state: WorkflowState) -> Dict[str, Any]:
+    async def _initialize(self, state: WorkflowState) -> Dict[str, Any]:
         """Initialize the analysis workflow"""
-        print(f"[LANGGRAPH] Starting LangGraph Multi-Agent Analysis")
-        print(f"[LANGGRAPH] File: {state['analysis_input'].file_path}")
-        print(f"[LANGGRAPH] Language: {state['analysis_input'].language}")
-        print(f"[LANGGRAPH] Selected Agents: {', '.join(state['analysis_input'].selected_agents)}")
+        file_info = state['analysis_input']
+        print(f"[INIT] Starting analysis: {Path(file_info.file_path).name}")
+        print(f"[INIT] Language: {file_info.language}")
+        print(f"[INIT] Selected agents: {', '.join(file_info.selected_agents)}")
         
         return {
             "workflow_status": "analyzing",
@@ -167,108 +191,79 @@ class LangGraphMultiAgentAnalyzer:
         }
     
     async def _setup_rag(self, state: WorkflowState) -> Dict[str, Any]:
-        """Setup RAG system if enabled"""
-        updates = {}
-        
-        if state['rag_enabled'] and self.enable_rag and self.rag_analyzer:
-            print("[LANGGRAPH] Setting up RAG context...")
-            
-            # Index the current file for RAG context
-            analysis_input = state['analysis_input']
+        """Setup RAG context if enabled"""
+        if state['rag_enabled'] and self.rag_analyzer:
+            print("[RAG] Setting up context...")
             try:
                 from agents.base_agent import LanguageDetector
-                language_detector = LanguageDetector()
-                
-                # Index just this file for efficient RAG context
-                files_to_index = [analysis_input.file_path]
-                self.rag_analyzer.index_codebase(files_to_index, language_detector)
-                
-                print(f"[LANGGRAPH] RAG context ready for {analysis_input.file_path}")
+                self.rag_analyzer.index_codebase(
+                    [state['analysis_input'].file_path], 
+                    LanguageDetector()
+                )
+                print("[RAG] Context ready")
             except Exception as e:
-                print(f"[LANGGRAPH] RAG setup failed: {str(e)}")
-        
-        return updates
-    
-    # RAG Agent removed - agents handle RAG internally
+                print(f"[RAG] Setup failed: {e}")
+        else:
+            print("[RAG] Disabled, skipping...")
+        return {}
     
     async def _route_agents(self, state: WorkflowState) -> Dict[str, Any]:
-        """Route to next available agents based on dependencies"""
-        print(f"[LANGGRAPH] Routing agents...")
-        print(f"[LANGGRAPH] Completed: {state['completed_agents']}")
-        print(f"[LANGGRAPH] Pending: {state['pending_agents']}")
+        """Route to the next available agent"""
+        completed = state['completed_agents']
+        pending = state['pending_agents']
+        ready = get_ready_agents(state)
+        
+        print(f"[ROUTER]  Routing decision")
+        print(f"[ROUTER]  Completed: {completed}")
+        print(f"[ROUTER]  Pending: {pending}")
+        print(f"[ROUTER]  Ready: {ready}")
         
         return {}
     
-    # Individual agent execution nodes
     async def _run_security_agent(self, state: WorkflowState) -> Dict[str, Any]:
-        """Run security analysis agent"""
-        return await self._run_agent('security', state)
+        """Run security analysis"""
+        return await self._execute_agent('security', '[SEC]', state)
     
     async def _run_complexity_agent(self, state: WorkflowState) -> Dict[str, Any]:
-        """Run complexity analysis agent"""
-        return await self._run_agent('complexity', state)
+        """Run complexity analysis"""
+        return await self._execute_agent('complexity', '[COMP]', state)
     
     async def _run_performance_agent(self, state: WorkflowState) -> Dict[str, Any]:
-        """Run performance analysis agent"""
-        return await self._run_agent('performance', state)
-    
-# Remove testing agent method for now
+        """Run performance analysis"""
+        return await self._execute_agent('performance', '[PERF]', state)
     
     async def _run_documentation_agent(self, state: WorkflowState) -> Dict[str, Any]:
-        """Run documentation analysis agent"""
-        return await self._run_agent('documentation', state)
+        """Run documentation analysis"""
+        return await self._execute_agent('documentation', '[DOC]', state)
     
-    async def _run_duplication_agent(self, state: WorkflowState) -> Dict[str, Any]:
-        """Run duplication analysis agent"""
-        return await self._run_agent('duplication', state)
-    
-    async def _run_agent(self, agent_name: str, state: WorkflowState) -> Dict[str, Any]:
-        """Generic agent execution with cross-agent context"""
-        print(f"[LANGGRAPH] Running {agent_name.title()} Agent...")
+    async def _execute_agent(self, agent_name: str, emoji: str, state: WorkflowState) -> Dict[str, Any]:
+        """Execute individual agent with proper tracing"""
+        print(f"[{agent_name.upper()}] {emoji} Starting analysis...")
         
-        # Smart rate limiting - only delay if we made recent API calls
-        if len(state['completed_agents']) > 0 and state.get('total_llm_calls', 0) > 0:
-            print(f"[LANGGRAPH] Rate limit protection: waiting 5s...")
-            await asyncio.sleep(5)  # Increased delay to avoid rate limits
+        # Rate limiting
+        if len(state['completed_agents']) > 0:
+            await asyncio.sleep(5)
         
         start_time = time.time()
         agent = self.agents[agent_name]
         analysis_input = state['analysis_input']
         
-        # Get cross-agent context for enhanced analysis
-        cross_context = get_cross_agent_context(state, agent_name)
-        
-        # Retry logic for rate limits
-        max_retries = 3
-        retry_delay = 20  # seconds
-        
-        for attempt in range(max_retries):
+        # Execute agent with retry logic
+        for attempt in range(3):
             try:
-                # Run the agent analysis
                 result = await agent.analyze(
-                    analysis_input.code_content, 
-                    analysis_input.file_path, 
+                    analysis_input.code_content,
+                    analysis_input.file_path,
                     analysis_input.language
                 )
-                break  # Success, exit retry loop
-                
+                break
             except Exception as e:
-                error_msg = str(e)
-                if "rate_limit_exceeded" in error_msg and attempt < max_retries - 1:
-                    # Check if it's daily limit vs per-minute limit
-                    if "tokens per day" in error_msg or "TPD:" in error_msg:
-                        print(f"[LANGGRAPH] Daily token limit reached! Stopping analysis.")
-                        print(f"[LANGGRAPH] Wait until tomorrow or upgrade Groq plan.")
-                        # For daily limits, don't retry - fail immediately
-                        raise e
-                    else:
-                        # For per-minute limits, retry with exponential backoff
-                        print(f"[LANGGRAPH] Rate limit hit, retrying in {retry_delay}s (attempt {attempt + 1}/{max_retries})")
-                        await asyncio.sleep(retry_delay)
-                        retry_delay *= 2  # Exponential backoff
-                        continue
-                else:
-                    raise e  # Re-raise if not rate limit or max retries reached
+                if "rate_limit" in str(e) and attempt < 2:
+                    wait_time = 20 * (2 ** attempt)
+                    print(f"[{agent_name.upper()}]  Rate limit, waiting {wait_time}s...")
+                    await asyncio.sleep(wait_time)
+                    continue
+                raise e
         
         processing_time = time.time() - start_time
         
@@ -280,37 +275,34 @@ class LangGraphMultiAgentAnalyzer:
             tokens_used=result.get('tokens_used', 0),
             confidence=result.get('confidence', 0.8),
             status='completed',
-            llm_calls=result.get('llm_calls', 0)  # Include LLM call count
+            llm_calls=result.get('llm_calls', 0),
+            trace_id=str(uuid.uuid4()) if LANGSMITH_AVAILABLE else None
         )
         
-        # Extract insights to share with other agents
+        # Share insights with other agents
         insights = self._extract_insights(agent_result)
         add_agent_insights(state, agent_name, insights)
         
-        print(f"[LANGGRAPH] SUCCESS {agent_name.title()} Agent: {len(agent_result.issues)} issues in {processing_time:.2f}s")
+        print(f"[{agent_name.upper()}]  Completed: {len(agent_result.issues)} issues in {processing_time:.2f}s")
         
-        # Update state
-        updates = {
+        return {
             'completed_agents': [agent_name],
             'agent_results': {agent_name: agent_result},
             'pending_agents': [a for a in state['pending_agents'] if a != agent_name],
             'total_tokens': state['total_tokens'] + agent_result.tokens_used,
-            'total_llm_calls': state['total_llm_calls'] + agent_result.llm_calls  # Use actual LLM call count
+            'total_llm_calls': state['total_llm_calls'] + agent_result.llm_calls
         }
-
-
-        return updates
     
     async def _aggregate_results(self, state: WorkflowState) -> Dict[str, Any]:
         """Aggregate results from all completed agents"""
-        print("[LANGGRAPH] Aggregating results from all agents...")
+        print("[AGGREGATE]  Combining results...")
         
         all_issues = []
         issues_by_severity = {'critical': 0, 'high': 0, 'medium': 0, 'low': 0}
         agent_performance = {}
         
-        # Aggregate from all agent results
         for agent_name, result in state['agent_results'].items():
+            # Add issues
             for issue in result.issues:
                 issue['agent'] = agent_name
                 issue['file_path'] = state['analysis_input'].file_path
@@ -320,6 +312,7 @@ class LangGraphMultiAgentAnalyzer:
                 if severity in issues_by_severity:
                     issues_by_severity[severity] += 1
             
+            # Track performance
             agent_performance[agent_name] = {
                 'issues_found': len(result.issues),
                 'processing_time': result.processing_time,
@@ -328,7 +321,8 @@ class LangGraphMultiAgentAnalyzer:
                 'status': result.status
             }
         
-        print(f"[LANGGRAPH] Aggregated {len(all_issues)} total issues")
+        print(f"[AGGREGATE] [COMP] Total issues: {len(all_issues)}")
+        print(f"[AGGREGATE]  Severity breakdown: {issues_by_severity}")
         
         return {
             'all_issues': all_issues,
@@ -336,14 +330,19 @@ class LangGraphMultiAgentAnalyzer:
             'agent_performance': agent_performance
         }
     
-    async def _finalize_analysis(self, state: WorkflowState) -> Dict[str, Any]:
-        """Finalize the analysis workflow"""
+    async def _finalize(self, state: WorkflowState) -> Dict[str, Any]:
+        """Finalize the analysis"""
         total_time = time.time() - state['total_processing_time']
         
-        print(f"[LANGGRAPH] Analysis completed in {total_time:.2f}s")
-        print(f"[LANGGRAPH] Total issues found: {len(state['all_issues'])}")
-        print(f"[LANGGRAPH] Successful agents: {len(state['completed_agents'])}")
-        print(f"[LANGGRAPH] Failed agents: {len(state['failed_agents'])}")
+        print(f"[FINALIZE]  Analysis complete!")
+        print(f"[FINALIZE]  Total time: {total_time:.2f}s")
+        print(f"[FINALIZE]  Total issues: {len(state['all_issues'])}")
+        print(f"[FINALIZE]  Agents completed: {len(state['completed_agents'])}")
+        print(f"[FINALIZE]  Total tokens: {state['total_tokens']}")
+        
+        if LANGSMITH_AVAILABLE and state.get('langsmith_session_id'):
+            session_url = f"https://smith.langchain.com/projects/{self.langsmith_project}/sessions/{state['langsmith_session_id']}"
+            print(f"[FINALIZE]  View in LangSmith: {session_url}")
         
         return {
             'workflow_status': 'completed',
@@ -352,72 +351,66 @@ class LangGraphMultiAgentAnalyzer:
     
     # ============ ROUTING FUNCTIONS ============
     
-    def _determine_next_agents(self, state: WorkflowState) -> str:
-        """Determine which agents should run next based on dependencies"""
+    def _determine_next_agent(self, state: WorkflowState) -> str:
+        """Determine which agent should run next"""
         ready_agents = get_ready_agents(state)
         
         if not ready_agents:
-            return "aggregate"  # No more agents ready, move to aggregation
+            print("[ROUTER]  No more agents ready -> aggregating")
+            return "aggregate"
         
-        # Return the highest priority ready agent
-        # In LangGraph, we can only return one route, but the agent will loop back
-        priority_agent = min(ready_agents, key=lambda x: self._get_agent_priority(x))
-        return priority_agent
+        # Priority order
+        priority_order = ['security', 'complexity', 'performance', 'documentation']
+        next_agent = min(ready_agents, key=lambda x: priority_order.index(x) if x in priority_order else 999)
+        
+        print(f"[ROUTER]  Next agent: {next_agent}")
+        return next_agent
     
     def _agent_completion_router(self, state: WorkflowState) -> str:
-        """Route after agent completion - continue or aggregate"""
+        """Route after agent completion"""
         if should_continue_workflow(state):
-            return "continue"  # More agents to run
+            print("[ROUTER]  More agents to run -> continue")
+            return "continue"
         else:
-            return "aggregate"  # All done
-    
-    def _get_agent_priority(self, agent_name: str) -> int:
-        """Get agent priority for routing"""
-        priority_map = {
-            'security': 1,
-            'complexity': 2, 
-            'performance': 3,
-            'documentation': 4,
-            'duplication': 5
-        }
-        return priority_map.get(agent_name, 10)
+            print("[ROUTER]  All agents complete -> aggregate")
+            return "aggregate"
     
     def _extract_insights(self, agent_result: AgentResult) -> List[str]:
-        """Extract key insights from agent results to share with other agents"""
+        """Extract key insights to share with other agents"""
         insights = []
-        
         for issue in agent_result.issues:
             if issue.get('severity') in ['critical', 'high']:
-                insight = f"{issue.get('title', 'Unknown issue')} - {issue.get('suggestion', 'No suggestion')}"
-                insights.append(insight)
-        
-        return insights[:3]  # Limit to top 3 insights
+                title = issue.get('title', 'Unknown issue')
+                suggestion = issue.get('suggestion', 'No suggestion')
+                insights.append(f"{title} - {suggestion}")
+        return insights[:3]
     
     # ============ PUBLIC API ============
     
-    async def analyze_file(self, file_path: str, code_content: str, language: str, 
+    async def analyze_file(self, file_path: str, code_content: str, language: str,
                           selected_agents: Optional[List[str]] = None) -> Dict[str, Any]:
-        """Analyze a single file using LangGraph workflow"""
+        """Analyze a single file with proper LangSmith tracing"""
         
-        # Prepare analysis input
-        selected_agents = selected_agents or ['security', 'complexity', 'performance', 'documentation']
+        # Filter valid agents
+        valid_agents = ['security', 'complexity', 'performance', 'documentation']
+        if selected_agents:
+            selected_agents = [a for a in selected_agents if a in valid_agents]
+        else:
+            selected_agents = valid_agents
         
-        # Check cache first - FAST PATH for cache hits
+        # Check cache first
         if self.cache_enabled and self.cache:
             cached_result = self.cache.get_analysis_result(file_path, selected_agents)
             if cached_result:
-                print(f"[LANGGRAPH-CACHE] Cache HIT: {os.path.basename(file_path)} (using cached analysis)")
-                # Add LangGraph-specific metadata to cached result
-                cached_result['workflow_engine'] = 'langgraph'
-                cached_result['cache_hit'] = True
-                # Update performance metrics for cache hit
-                cached_result['processing_time'] = 0.01  # Near-instant for cache
-                cached_result['total_tokens'] = cached_result.get('total_tokens', 0)  # Keep original token count
-                cached_result['llm_calls'] = 0  # No LLM calls for cache hit
-                # Return immediately - no workflow execution needed
+                print(f"[CACHE]  Cache hit: {Path(file_path).name}")
+                cached_result.update({
+                    'workflow_engine': 'langgraph',
+                    'cache_hit': True,
+                    'processing_time': 0.01
+                })
                 return cached_result
-            else:
-                print(f"[LANGGRAPH-CACHE] Cache MISS: {os.path.basename(file_path)} (running analysis...)")
+        
+        # Prepare analysis input
         analysis_input = CodeAnalysisInput(
             file_path=file_path,
             code_content=code_content,
@@ -429,39 +422,125 @@ class LangGraphMultiAgentAnalyzer:
         
         # Initialize workflow state
         initial_state = initialize_workflow_state(analysis_input)
+        session_id = initial_state['langsmith_session_id']
         
-        print(f"\n[LANGGRAPH] Starting LangGraph workflow for {file_path}")
-        print(f"[LANGGRAPH] Agents: {', '.join(selected_agents)}")
+        print(f"\n[WORKFLOW]  Starting LangGraph Analysis")
+        print(f"[WORKFLOW]  File: {Path(file_path).name}")
+        print(f"[WORKFLOW]  Session: {session_id}")
+        print(f"[WORKFLOW]  Agents: {', '.join(selected_agents)}")
         print("=" * 70)
         
-        # Execute workflow with increased recursion limit
+        # Configure execution with proper LangSmith integration
         config = {
-            "configurable": {"thread_id": f"analysis_{hash(file_path)}"},
-            "recursion_limit": 100  # Increase from default 25 to 100
+            "configurable": {
+                "thread_id": f"analysis_{hash(file_path)}",
+                "session_id": session_id
+            },
+            "recursion_limit": 100
         }
-        final_state = await self.workflow.ainvoke(initial_state, config=config)
         
-        # Prepare results in expected format
+        # Add LangSmith configuration
+        if LANGSMITH_AVAILABLE:
+            config.update({
+                "tags": ["langgraph", "code-analysis", "multi-agent", language],
+                "metadata": {
+                    "project": self.langsmith_project,
+                    "file_path": file_path,
+                    "file_name": Path(file_path).name,
+                    "language": language,
+                    "agents": selected_agents,
+                    "session_id": session_id
+                }
+            })
+        
+        # Execute workflow with optional LangSmith tracing
+        try:
+            # Simplified execution without trace decorator to avoid issues
+            final_state = await self.workflow.ainvoke(initial_state, config=config)
+                
+        except Exception as e:
+            print(f"[WORKFLOW]  Execution failed: {e}")
+            return {
+                'file_path': file_path,
+                'language': language,
+                'error': str(e),
+                'workflow_engine': 'langgraph',
+                'session_id': session_id,
+                'processing_time': 0,
+                'total_issues': 0,
+                'completed_agents': [],
+                'failed_agents': selected_agents
+            }
+        
+        # Prepare comprehensive result
         result = {
             'file_path': file_path,
             'language': language,
             'total_lines': len(code_content.split('\n')),
-            'total_issues': len(final_state['all_issues']),
-            'issues_by_severity': final_state['issues_by_severity'],
-            'agent_performance': final_state['agent_performance'],
-            'all_issues': final_state['all_issues'],
-            'processing_time': final_state['total_processing_time'],
-            'total_tokens': final_state['total_tokens'],
-            'llm_calls': final_state['total_llm_calls'],
+            'total_issues': len(final_state.get('all_issues', [])),
+            'issues_by_severity': final_state.get('issues_by_severity', {}),
+            'agent_performance': final_state.get('agent_performance', {}),
+            'all_issues': final_state.get('all_issues', []),
+            'processing_time': final_state.get('total_processing_time', 0),
+            'total_tokens': final_state.get('total_tokens', 0),
+            'llm_calls': final_state.get('total_llm_calls', 0),
             'workflow_engine': 'langgraph',
-            'completed_agents': final_state['completed_agents'],
-            'failed_agents': final_state['failed_agents'],
-            'cache_hit': False
+            'completed_agents': final_state.get('completed_agents', []),
+            'failed_agents': final_state.get('failed_agents', []),
+            'cache_hit': False,
+            'langsmith_project': self.langsmith_project,
+            'langsmith_session_id': session_id,
+            'langsmith_enabled': LANGSMITH_AVAILABLE
         }
         
-        # Cache the result for future runs
-        if self.cache_enabled and self.cache and 'error' not in final_state:
+        # Add LangSmith dashboard URLs
+        if LANGSMITH_AVAILABLE:
+            result.update({
+                'langsmith_dashboard_url': f"https://smith.langchain.com/projects/{self.langsmith_project}",
+                'langsmith_session_url': f"https://smith.langchain.com/projects/{self.langsmith_project}/sessions/{session_id}",
+                'langsmith_runs_url': f"https://smith.langchain.com/projects/{self.langsmith_project}/runs"
+            })
+        
+        # Cache the result
+        if self.cache_enabled and self.cache and 'error' not in result:
             self.cache.save_analysis_result(file_path, selected_agents, result)
-            print(f"[LANGGRAPH-CACHE] Analysis cached for future runs")
+        
+        # Print final summary with LangSmith links
+        print("\n" + "=" * 70)
+        print(f"[SUMMARY]  Analysis Complete!")
+        print(f"[SUMMARY] [COMP] Issues found: {result['total_issues']}")
+        print(f"[SUMMARY]  Time taken: {result['processing_time']:.2f}s")
+        print(f"[SUMMARY]  Agents completed: {len(result['completed_agents'])}")
+        
+        if LANGSMITH_AVAILABLE:
+            print(f"[SUMMARY]  LangSmith Dashboard:")
+            print(f"[SUMMARY]   [COMP] Project: {result['langsmith_dashboard_url']}")
+            print(f"[SUMMARY]    Session: {result['langsmith_session_url']}")
+            print(f"[SUMMARY]    All Runs: {result['langsmith_runs_url']}")
         
         return result
+    
+    def get_workflow_graph_url(self) -> Optional[str]:
+        """Get URL to view the workflow graph structure"""
+        if LANGSMITH_AVAILABLE:
+            return f"https://smith.langchain.com/projects/{self.langsmith_project}/runs?tab=graph"
+        return None
+    
+    def print_workflow_structure(self):
+        """Print the workflow structure for debugging"""
+        print("\n[WORKFLOW STRUCTURE]")
+        print("Nodes:")
+        print("  1. initialize")
+        print("  2. setup_rag") 
+        print("  3. route_agents")
+        print("  4. security_agent")
+        print("  5. complexity_agent")
+        print("  6. performance_agent")
+        print("  7. documentation_agent")
+        print("  8. aggregate_results")
+        print("  9. finalize")
+        print("\nFlow:")
+        print("  initialize -> setup_rag -> route_agents -> [agents] -> aggregate_results -> finalize")
+        print(f"\nLangSmith Project: {self.langsmith_project}")
+        if LANGSMITH_AVAILABLE:
+            print(f"Dashboard: https://smith.langchain.com/projects/{self.langsmith_project}")

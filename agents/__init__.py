@@ -1,6 +1,6 @@
 """LLM-powered multi-agent code analysis system."""
 
-from .base_agent import BaseLLMAgent, LanguageDetector
+from .base_agent import BaseLLMAgent, LanguageDetector, TracedGroqLLM
 from .security_agent import SecurityAgent
 from .performance_agent import PerformanceAgent
 from .complexity_agent import ComplexityAgent
@@ -10,6 +10,7 @@ from .duplication_agent import DuplicationAgent
 __all__ = [
     'BaseLLMAgent',
     'LanguageDetector',
+    'TracedGroqLLM',
     'SecurityAgent',
     'PerformanceAgent',
     'ComplexityAgent',

@@ -7,14 +7,12 @@ from typing import Dict, List, Any, Optional, TypedDict, Annotated
 from dataclasses import dataclass
 import operator
 
-# Agent dependency configuration as mentioned in README
+# Agent dependency configuration - duplication agent removed
 AGENT_DEPENDENCIES = {
     'security': [],                              # Priority 1 - No dependencies
     'complexity': [],                            # Priority 2 - No dependencies  
     'performance': ['complexity'],               # Depends on complexity insights
-# Remove testing agent dependencies for now
     'documentation': ['complexity'],             # Depends on complexity analysis
-    'duplication': ['complexity']                # Depends on complexity analysis
 }
 
 @dataclass
@@ -28,6 +26,10 @@ class AgentResult:
     status: str  # 'completed', 'failed', 'skipped'
     error_message: Optional[str] = None
     llm_calls: int = 0  # Track actual LLM API calls
+    # Add LangSmith tracing fields
+    trace_id: Optional[str] = None
+    run_id: Optional[str] = None
+    langsmith_url: Optional[str] = None
 
 @dataclass 
 class CodeAnalysisInput:
@@ -38,6 +40,8 @@ class CodeAnalysisInput:
     file_size: int
     selected_agents: List[str]
     enable_rag: bool = True
+    # Add LangSmith tracing
+    trace_metadata: Optional[Dict[str, Any]] = None
 
 class WorkflowState(TypedDict):
     """LangGraph workflow state - shared across all agents"""
@@ -53,10 +57,11 @@ class WorkflowState(TypedDict):
     # Agent results
     agent_results: Annotated[Dict[str, AgentResult], operator.or_]
     
-    # Cross-agent insights (agents can share findings)
+    # Cross-agent insights (agents can share findings) - removed duplication_insights
     security_insights: Annotated[List[str], operator.add]
     complexity_insights: Annotated[List[str], operator.add]
     performance_insights: Annotated[List[str], operator.add]
+    documentation_insights: Annotated[List[str], operator.add]
     
     # Workflow control
     workflow_status: str  # 'initializing', 'analyzing', 'aggregating', 'completed', 'failed'
@@ -72,6 +77,11 @@ class WorkflowState(TypedDict):
     # RAG context (if enabled)
     rag_chunks: Optional[List[Dict[str, Any]]]
     rag_enabled: bool
+    
+    # LangSmith tracing
+    langsmith_session_id: Optional[str]
+    langsmith_project: str
+    trace_metadata: Dict[str, Any]
 
 def get_ready_agents(state: WorkflowState) -> List[str]:
     """
@@ -103,18 +113,22 @@ def calculate_agent_priority(agent_name: str) -> int:
         'complexity': 2,    # Second priority
         'performance': 3,   # Third priority (depends on complexity)
         'documentation': 4, # Fourth priority (depends on complexity)
-        'duplication': 5    # Fifth priority (depends on complexity)
+        # Removed duplication agent
     }
     return priority_map.get(agent_name, 10)
 
 def initialize_workflow_state(analysis_input: CodeAnalysisInput) -> WorkflowState:
-    """Initialize the workflow state"""
+    """Initialize the workflow state with LangSmith tracing"""
+    import uuid
+    import time
     
-    # Sort agents by priority and dependencies
-    selected_agents = sorted(
-        analysis_input.selected_agents, 
-        key=calculate_agent_priority
-    )
+    # Sort agents by priority and dependencies (excluding duplication)
+    valid_agents = ['security', 'complexity', 'performance', 'documentation']
+    selected_agents = [agent for agent in analysis_input.selected_agents if agent in valid_agents]
+    selected_agents = sorted(selected_agents, key=calculate_agent_priority)
+    
+    # Generate session ID for LangSmith tracing
+    session_id = str(uuid.uuid4())
     
     return WorkflowState(
         analysis_input=analysis_input,
@@ -125,6 +139,7 @@ def initialize_workflow_state(analysis_input: CodeAnalysisInput) -> WorkflowStat
         security_insights=[],
         complexity_insights=[],
         performance_insights=[],
+        documentation_insights=[],
         workflow_status='initializing',
         total_processing_time=0.0,
         total_tokens=0,
@@ -133,7 +148,17 @@ def initialize_workflow_state(analysis_input: CodeAnalysisInput) -> WorkflowStat
         issues_by_severity={'critical': 0, 'high': 0, 'medium': 0, 'low': 0},
         agent_performance={},
         rag_chunks=None,
-        rag_enabled=analysis_input.enable_rag
+        rag_enabled=analysis_input.enable_rag,
+        langsmith_session_id=session_id,
+        langsmith_project="code-analysis-workflow",
+        trace_metadata={
+            'workflow_version': '2.0',
+            'file_path': analysis_input.file_path,
+            'language': analysis_input.language,
+            'agents_count': len(selected_agents),
+            'started_at': time.time(),
+            'session_id': session_id
+        }
     )
 
 def add_agent_insights(state: WorkflowState, agent_name: str, insights: List[str]) -> None:
@@ -144,6 +169,8 @@ def add_agent_insights(state: WorkflowState, agent_name: str, insights: List[str
         state['complexity_insights'].extend(insights)
     elif agent_name == 'performance':
         state['performance_insights'].extend(insights)
+    elif agent_name == 'documentation':
+        state['documentation_insights'].extend(insights)
 
 def get_cross_agent_context(state: WorkflowState, requesting_agent: str) -> str:
     """Get contextual insights from other agents for the requesting agent"""
@@ -155,11 +182,27 @@ def get_cross_agent_context(state: WorkflowState, requesting_agent: str) -> str:
                            "\n".join(f"- {insight}" for insight in state['security_insights']))
     
     # Complexity context for dependent agents
-    if (requesting_agent in ['performance', 'documentation', 'duplication'] 
+    if (requesting_agent in ['performance', 'documentation'] 
         and state['complexity_insights']):
         context_parts.append(f"Complexity Analysis Insights:\n" + 
                            "\n".join(f"- {insight}" for insight in state['complexity_insights']))
     
-# Remove testing agent context for now
+    # Performance context for documentation agent
+    if requesting_agent == 'documentation' and state['performance_insights']:
+        context_parts.append(f"Performance Analysis Insights:\n" + 
+                           "\n".join(f"- {insight}" for insight in state['performance_insights']))
     
     return "\n\n".join(context_parts) if context_parts else ""
+
+def create_langsmith_metadata(agent_name: str, state: WorkflowState) -> Dict[str, Any]:
+    """Create LangSmith metadata for agent execution"""
+    return {
+        'agent_name': agent_name,
+        'session_id': state['langsmith_session_id'],
+        'file_path': state['analysis_input'].file_path,
+        'language': state['analysis_input'].language,
+        'completed_agents': state['completed_agents'],
+        'workflow_status': state['workflow_status'],
+        'total_tokens_so_far': state['total_tokens'],
+        'cross_agent_context_available': bool(get_cross_agent_context(state, agent_name))
+    }
