@@ -240,6 +240,12 @@ REMEMBER: Focus on real bottlenecks that would impact production performance."""
         
         system_prompt = self.get_system_prompt(language)
         
+        # Create numbered code for better line reference
+        numbered_lines = []
+        for i, line in enumerate(code.split('\n'), 1):
+            numbered_lines.append(f"{i:4d}: {line}")
+        numbered_code = '\n'.join(numbered_lines)
+
         enhanced_prompt = f"""
 {system_prompt}
 
@@ -252,8 +258,9 @@ CODE TO ANALYZE:
 File: {file_path}
 Language: {language}
 
+Code (with line numbers):
 ```{language}
-{code}
+{numbered_code}
 ```
 
 PERFORMANCE CONTEXT:
