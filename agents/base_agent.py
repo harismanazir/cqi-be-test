@@ -76,7 +76,216 @@ class LanguageDetector:
             string_delimiters=['"', "'", '`'],
             special_patterns={'function': r'function\s+\w+\s*\(', 'class': r'class\s+\w+'}
         ),
-        # Add other languages as needed...
+        'typescript': LanguageConfig(
+            name='TypeScript',
+            extensions=['.ts', '.tsx'],
+            comment_styles=['//', '/*'],
+            string_delimiters=['"', "'", '`'],
+            special_patterns={'function': r'function\s+\w+\s*\(', 'class': r'class\s+\w+', 'interface': r'interface\s+\w+'}
+        ),
+        'java': LanguageConfig(
+            name='Java',
+            extensions=['.java'],
+            comment_styles=['//', '/*'],
+            string_delimiters=['"'],
+            special_patterns={'function': r'(public|private|protected)?\s*(static\s+)?\w+\s+\w+\s*\(', 'class': r'(public\s+)?class\s+\w+'}
+        ),
+        'go': LanguageConfig(
+            name='Go',
+            extensions=['.go'],
+            comment_styles=['//', '/*'],
+            string_delimiters=['"', '`'],
+            special_patterns={'function': r'func\s+\w+\s*\(', 'struct': r'type\s+\w+\s+struct'}
+        ),
+        'cpp': LanguageConfig(
+            name='C++',
+            extensions=['.cpp', '.cxx', '.cc', '.hpp', '.hxx', '.h'],
+            comment_styles=['//', '/*'],
+            string_delimiters=['"', "'"],
+            special_patterns={'function': r'\w+\s+\w+\s*\(', 'class': r'class\s+\w+'}
+        ),
+        'c': LanguageConfig(
+            name='C',
+            extensions=['.c', '.h'],
+            comment_styles=['//', '/*'],
+            string_delimiters=['"', "'"],
+            special_patterns={'function': r'\w+\s+\w+\s*\(', 'struct': r'struct\s+\w+'}
+        ),
+        'csharp': LanguageConfig(
+            name='C#',
+            extensions=['.cs'],
+            comment_styles=['//', '/*'],
+            string_delimiters=['"', "'"],
+            special_patterns={'function': r'(public|private|protected)?\s*(static\s+)?\w+\s+\w+\s*\(', 'class': r'(public\s+)?class\s+\w+'}
+        ),
+        'html': LanguageConfig(
+            name='HTML',
+            extensions=['.html', '.htm', '.xhtml'],
+            comment_styles=['<!--'],
+            string_delimiters=['"', "'"],
+            special_patterns={'tag': r'<\w+', 'script': r'<script', 'style': r'<style'}
+        ),
+        'css': LanguageConfig(
+            name='CSS',
+            extensions=['.css', '.scss', '.sass', '.less'],
+            comment_styles=['/*'],
+            string_delimiters=['"', "'"],
+            special_patterns={'selector': r'[.#]?\w+\s*{', 'property': r'\w+\s*:'}
+        ),
+        'php': LanguageConfig(
+            name='PHP',
+            extensions=['.php', '.phtml'],
+            comment_styles=['//', '/*', '#'],
+            string_delimiters=['"', "'"],
+            special_patterns={'function': r'function\s+\w+\s*\(', 'class': r'class\s+\w+'}
+        ),
+        'ruby': LanguageConfig(
+            name='Ruby',
+            extensions=['.rb', '.rake'],
+            comment_styles=['#'],
+            string_delimiters=['"', "'"],
+            special_patterns={'function': r'def\s+\w+', 'class': r'class\s+\w+'}
+        ),
+        'rust': LanguageConfig(
+            name='Rust',
+            extensions=['.rs'],
+            comment_styles=['//', '/*'],
+            string_delimiters=['"', "'"],
+            special_patterns={'function': r'fn\s+\w+\s*\(', 'struct': r'struct\s+\w+', 'impl': r'impl\s+\w+'}
+        ),
+        'kotlin': LanguageConfig(
+            name='Kotlin',
+            extensions=['.kt', '.kts'],
+            comment_styles=['//', '/*'],
+            string_delimiters=['"', "'"],
+            special_patterns={'function': r'fun\s+\w+\s*\(', 'class': r'class\s+\w+'}
+        ),
+        'swift': LanguageConfig(
+            name='Swift',
+            extensions=['.swift'],
+            comment_styles=['//', '/*'],
+            string_delimiters=['"', "'"],
+            special_patterns={'function': r'func\s+\w+\s*\(', 'class': r'class\s+\w+', 'struct': r'struct\s+\w+'}
+        ),
+        'scala': LanguageConfig(
+            name='Scala',
+            extensions=['.scala'],
+            comment_styles=['//', '/*'],
+            string_delimiters=['"', "'"],
+            special_patterns={'function': r'def\s+\w+\s*\(', 'class': r'class\s+\w+', 'object': r'object\s+\w+'}
+        ),
+        'r': LanguageConfig(
+            name='R',
+            extensions=['.r', '.R'],
+            comment_styles=['#'],
+            string_delimiters=['"', "'"],
+            special_patterns={'function': r'\w+\s*<-\s*function\s*\('}
+        ),
+        'matlab': LanguageConfig(
+            name='MATLAB',
+            extensions=['.m'],
+            comment_styles=['%'],
+            string_delimiters=['"', "'"],
+            special_patterns={'function': r'function\s+.*\s*=\s*\w+\s*\('}
+        ),
+        'shell': LanguageConfig(
+            name='Shell',
+            extensions=['.sh', '.bash', '.zsh', '.fish'],
+            comment_styles=['#'],
+            string_delimiters=['"', "'"],
+            special_patterns={'function': r'\w+\s*\(\s*\)\s*{'}
+        ),
+        'powershell': LanguageConfig(
+            name='PowerShell',
+            extensions=['.ps1', '.psm1'],
+            comment_styles=['#', '<#'],
+            string_delimiters=['"', "'"],
+            special_patterns={'function': r'function\s+\w+\s*\('}
+        ),
+        'sql': LanguageConfig(
+            name='SQL',
+            extensions=['.sql'],
+            comment_styles=['--', '/*'],
+            string_delimiters=['"', "'"],
+            special_patterns={'function': r'CREATE\s+(FUNCTION|PROCEDURE)\s+\w+', 'table': r'CREATE\s+TABLE\s+\w+'}
+        ),
+        'json': LanguageConfig(
+            name='JSON',
+            extensions=['.json'],
+            comment_styles=[],
+            string_delimiters=['"'],
+            special_patterns={'object': r'\{', 'array': r'\['}
+        ),
+        'yaml': LanguageConfig(
+            name='YAML',
+            extensions=['.yml', '.yaml'],
+            comment_styles=['#'],
+            string_delimiters=['"', "'"],
+            special_patterns={'key': r'\w+\s*:'}
+        ),
+        'xml': LanguageConfig(
+            name='XML',
+            extensions=['.xml', '.xsd', '.xsl'],
+            comment_styles=['<!--'],
+            string_delimiters=['"', "'"],
+            special_patterns={'tag': r'<\w+', 'element': r'<\w+.*?>'}
+        ),
+        'dart': LanguageConfig(
+            name='Dart',
+            extensions=['.dart'],
+            comment_styles=['//', '/*'],
+            string_delimiters=['"', "'"],
+            special_patterns={'function': r'\w+\s+\w+\s*\(', 'class': r'class\s+\w+'}
+        ),
+        'lua': LanguageConfig(
+            name='Lua',
+            extensions=['.lua'],
+            comment_styles=['--'],
+            string_delimiters=['"', "'"],
+            special_patterns={'function': r'function\s+\w+\s*\('}
+        ),
+        'perl': LanguageConfig(
+            name='Perl',
+            extensions=['.pl', '.pm'],
+            comment_styles=['#'],
+            string_delimiters=['"', "'"],
+            special_patterns={'function': r'sub\s+\w+\s*{'}
+        ),
+        'haskell': LanguageConfig(
+            name='Haskell',
+            extensions=['.hs'],
+            comment_styles=['--'],
+            string_delimiters=['"', "'"],
+            special_patterns={'function': r'\w+\s*::'}
+        ),
+        'elixir': LanguageConfig(
+            name='Elixir',
+            extensions=['.ex', '.exs'],
+            comment_styles=['#'],
+            string_delimiters=['"', "'"],
+            special_patterns={'function': r'def\s+\w+\s*\(', 'module': r'defmodule\s+\w+'}
+        ),
+        'erlang': LanguageConfig(
+            name='Erlang',
+            extensions=['.erl', '.hrl'],
+            comment_styles=['%'],
+            string_delimiters=['"', "'"],
+            special_patterns={'function': r'\w+\s*\(.*\)\s*->'}
+        ),
+        'clojure': LanguageConfig(
+            name='Clojure',
+            extensions=['.clj', '.cljs', '.cljc'],
+            comment_styles=[';'],
+            string_delimiters=['"'],
+            special_patterns={'function': r'\(defn\s+\w+'}
+        ),
+        'dockerfile': LanguageConfig(
+            name='Dockerfile',
+            extensions=['Dockerfile', '.dockerfile'],
+            comment_styles=['#'],
+            string_delimiters=['"', "'"],
+            special_patterns={'instruction': r'^[A-Z]+\s+'}
+        )
     }
     
     @classmethod
