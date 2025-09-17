@@ -22,8 +22,9 @@ COPY pyproject.toml* ./
 # LangSmith/LangChain versions used:
 # - langsmith>=0.4.0,<0.5.0 (for enhanced prompt management with v0.4.x API)
 # - langchain-groq>=0.1.9 (for Groq LLM integration)
-# - langchain-core>=0.2.26 (core LangChain functionality)
+# - langchain-core>=0.2.26 (core LangChain functionality - requires pydantic>=2.7.4)
 # - langgraph>=0.1.1 (for workflow orchestration)
+# - pydantic>=2.7.4,<3.0.0 (required by langchain-core>=0.3.75)
 
 # Install PyTorch CPU-only first to reduce memory usage
 RUN uv pip install --system --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
