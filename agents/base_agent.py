@@ -306,7 +306,7 @@ class LanguageDetector:
 class TracedGroqLLM:
     """Groq LLM with comprehensive LangSmith tracing"""
     
-    def __init__(self, model_name: str = "llama-3.3-70b-versatile"):
+    def __init__(self, model_name: str = "llama-3.1-8b-instant"):
         self.model_name = model_name
         self.call_count = 0
         
