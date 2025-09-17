@@ -20,7 +20,7 @@ COPY pyproject.toml* ./
 
 # Install dependencies using uv (10x faster than pip) with ML support
 # LangSmith/LangChain versions used:
-# - langsmith>=0.0.87 (for enhanced prompt management)
+# - langsmith>=0.4.0,<0.5.0 (for enhanced prompt management with v0.4.x API)
 # - langchain-groq>=0.1.9 (for Groq LLM integration)
 # - langchain-core>=0.2.26 (core LangChain functionality)
 # - langgraph>=0.1.1 (for workflow orchestration)

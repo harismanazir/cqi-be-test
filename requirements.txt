@@ -9,7 +9,7 @@ python-multipart==0.0.6
 langchain-groq>=0.1.9
 langchain-core>=0.2.26
 langgraph>=0.1.1
-langsmith>=0.0.87
+langsmith>=0.4.0,<0.5.0
 
 # Environment utilities
 python-dotenv==1.0.0
