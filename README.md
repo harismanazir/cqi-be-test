@@ -82,10 +82,10 @@ LANGSMITH_API_KEY=your_langsmith_api_key_here
 python atlan-code-analyze.py --path="/path/to/code" --detailed
 
 # Analyze GitHub repository
-python atlan-code-analyze.py --repo="https://github.com/user/repo"
+python atlan-code-analyze.py --repo="https://github.com/user/repo" --detailed
 
 # Analyze specific branch
-python atlan-code-analyze.py --repo="https://github.com/user/repo" --branch="develop"
+python atlan-code-analyze.py --repo="https://github.com/user/repo" --branch="develop" --detailed
 ```
 
 #### Interactive Q&A Mode
