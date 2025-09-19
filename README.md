@@ -33,7 +33,7 @@ pip install uv
 ```bash
 # Clone the repository
 git clone https://github.com/harismanazir/cqi-be-test
-cd cqi
+cd cqi-be-test
 
 # Install all dependencies (uv will auto-create venv and install everything)
 uv sync
