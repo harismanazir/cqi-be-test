@@ -41,38 +41,41 @@ class AtlanCodeAnalyzer:
         
     async def analyze_path(self, path: str, detailed: bool = False, agents: Optional[List[str]] = None,
                           enable_rag: bool = True, enable_cache: bool = True, max_files: Optional[int] = None):
-        """Analyze local file or directory path"""
-        
+        """Analyze local file or directory path using main.py logic"""
+
         if not os.path.exists(path):
-            print(f"❌ Error: Path does not exist: {path}")
+            print(f"[ERROR] Path does not exist: {path}")
             return False
-        
-        print(f"🔍 Analyzing local path: {path}")
+
+        print(f"[ANALYZING] {path}")
         print("=" * 60)
-        
-        # Initialize LangGraph CQI system
+
+        # Initialize LangGraph CQI system exactly like main.py
         cqi = LangGraphCQI(
             enable_rag=enable_rag,
             enable_cache=enable_cache,
-            use_langgraph=True
+            use_langgraph=True  # Always use LangGraph for consistency
         )
-        
+
         try:
             if os.path.isfile(path):
-                # Analyze single file
+                # Use main.py's exact logic for file analysis
                 result = await cqi.analyze_file(path, agents, detailed)
-                self._print_analysis_summary(result, "file")
+                # Don't print custom summary, let main.py's _print_results handle it
+                return True
             else:
-                # Analyze directory
-                result = await cqi.analyze_directory(
-                    path, agents, detailed, max_parallel=4, max_files=max_files
-                )
-                self._print_analysis_summary(result, "directory")
-            
-            return True
-            
+                # Use main.py's exact logic for directory analysis
+                result = await cqi.analyze_directory(path, agents, detailed, max_parallel=4, max_files=max_files)
+                # Don't print custom summary, let main.py's _print_results handle it
+                return True
+
+        except KeyboardInterrupt:
+            print(f"\n[INTERRUPT] Analysis interrupted by user")
+            return False
         except Exception as e:
-            print(f"❌ Analysis failed: {str(e)}")
+            print(f"\n[ERROR] Analysis failed: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return False
     
     async def analyze_github_repo(self, repo_url: str, branch: str = "main", 
@@ -126,19 +129,11 @@ class AtlanCodeAnalyzer:
                 temp_dir, agents, detailed, max_parallel=4, max_files=max_files
             )
             
-            # Enhance result with GitHub metadata
-            result['github_metadata'] = {
-                'repo_url': repo_url,
-                'branch': branch,
-                'validation': validation,
-                'repo_stats': repo_stats
-            }
-            
-            self._print_analysis_summary(result, "github_repo")
+            # Let main.py handle the printing
             return True
             
         except Exception as e:
-            print(f"❌ GitHub analysis failed: {str(e)}")
+            print(f"[ERROR] GitHub analysis failed: {str(e)}")
             return False
         
         finally:
@@ -148,7 +143,7 @@ class AtlanCodeAnalyzer:
                     shutil.rmtree(temp_dir)
                     print(f"🧹 Cleaned up temporary directory")
                 except Exception as cleanup_error:
-                    print(f"⚠️ Warning: Could not clean up temp directory: {cleanup_error}")
+                    print(f"[WARNING] Could not clean up temp directory: {cleanup_error}")
     
     async def start_qa_session(self, path: Optional[str] = None, repo_url: Optional[str] = None, 
                               branch: str = "main", enable_rag: bool = True, run_analysis: bool = True):
@@ -221,105 +216,8 @@ class AtlanCodeAnalyzer:
                     shutil.rmtree(temp_dir)
                     print(f"\n🧹 Cleaned up temporary directory")
                 except Exception as cleanup_error:
-                    print(f"⚠️ Warning: Could not clean up temp directory: {cleanup_error}")
+                    print(f"[WARNING] Could not clean up temp directory: {cleanup_error}")
     
-    def _print_analysis_summary(self, result: dict, analysis_type: str):
-        """Print analysis summary with enhanced formatting"""
-        
-        if 'error' in result:
-            print(f"❌ Analysis Error: {result['error']}")
-            return
-        
-        print("\n" + "="*70)
-        print("📊 ANALYSIS COMPLETE")
-        print("="*70)
-        
-        # Basic statistics
-        if analysis_type == "file":
-            print(f"📄 File: {os.path.basename(result.get('file_path', 'Unknown'))}")
-            print(f"💻 Language: {result.get('language', 'Unknown').title()}")
-            print(f"📏 Lines: {result.get('total_lines', 0):,}")
-        elif analysis_type in ["directory", "github_repo"]:
-            print(f"📁 Files Processed: {result.get('total_files', 0)}")
-            print(f"📏 Total Lines: {result.get('total_lines', 0):,}")
-            
-            # Language breakdown
-            languages = result.get('languages', {})
-            if languages:
-                print(f"💻 Languages Found: {len(languages)}")
-                for lang, stats in languages.items():
-                    print(f"   - {lang.title()}: {stats['files']} files, {stats['issues']} issues")
-        
-        # GitHub metadata
-        if analysis_type == "github_repo" and result.get('github_metadata'):
-            metadata = result['github_metadata']
-            print(f"🐙 Repository: {metadata['repo_url']}")
-            print(f"🌿 Branch: {metadata['branch']}")
-            
-            validation = metadata.get('validation', {})
-            if validation.get('language'):
-                print(f"🏷️ Primary Language: {validation['language']}")
-            if validation.get('stars'):
-                print(f"⭐ Stars: {validation['stars']:,}")
-        
-        # Issue summary
-        total_issues = result.get('total_issues', 0)
-        print(f"\n🚨 Issues Found: {total_issues}")
-        
-        severity_counts = result.get('issues_by_severity', {})
-        if severity_counts:
-            print("📈 Severity Breakdown:")
-            for severity in ['critical', 'high', 'medium', 'low']:
-                count = severity_counts.get(severity, 0)
-                if count > 0:
-                    emoji = {'critical': '🔴', 'high': '🟠', 'medium': '🟡', 'low': '🟢'}
-                    print(f"   {emoji[severity]} {severity.title()}: {count}")
-        
-        # Performance metrics
-        print(f"\n⏱️ Processing Time: {result.get('processing_time', 0):.2f}s")
-        print(f"🔢 LLM Tokens: {result.get('total_tokens', 0):,}")
-        
-        # Workflow info
-        workflow_engine = result.get('workflow_engine', 'unknown')
-        print(f"🧠 Engine: {workflow_engine.title()}")
-        
-        if result.get('completed_agents'):
-            print(f"✅ Agents: {', '.join(result['completed_agents'])}")
-        if result.get('failed_agents'):
-            print(f"❌ Failed: {', '.join(result['failed_agents'])}")
-        
-        # Top issues (if detailed)
-        all_issues = result.get('all_issues', [])
-        if all_issues:
-            print(f"\n🔍 TOP ISSUES (First 10):")
-            print("-" * 70)
-            
-            # Sort by severity
-            severity_order = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3}
-            sorted_issues = sorted(all_issues, 
-                                 key=lambda x: severity_order.get(x.get('severity', 'low'), 3))
-            
-            for i, issue in enumerate(sorted_issues[:10], 1):
-                severity_emoji = {'critical': '🔴', 'high': '🟠', 'medium': '🟡', 'low': '🟢'}
-                severity = issue.get('severity', 'low')
-                
-                print(f"\n{i}. {severity_emoji.get(severity, '⚪')} [{severity.upper()}] {issue.get('title', 'Unknown Issue')}")
-                print(f"   🤖 Agent: {issue.get('agent', 'unknown').title()}")
-                
-                file_path = issue.get('file_path', '')
-                if file_path:
-                    print(f"   📄 File: {os.path.basename(file_path)}")
-                
-                line_number = issue.get('line_number', issue.get('line', 0))
-                if line_number and line_number > 0:
-                    print(f"   📍 Line: {line_number}")
-                
-                print(f"   📝 {issue.get('description', 'No description')}")
-                fix = issue.get('suggestion', issue.get('fix', 'No suggestion'))
-                if fix and fix != 'No suggestion':
-                    print(f"   💡 Fix: {fix}")
-        
-        print("\n" + "="*70)
     
     def cleanup(self):
         """Cleanup temporary directories"""
@@ -399,16 +297,19 @@ async def main():
     parser = create_parser()
     args = parser.parse_args()
     
-    # Parse agents
+    # Parse agents - but use None to match main.py behavior
+    # main.py defaults to all agents when selected_agents is None
     selected_agents = None
     if args.agents:
-        selected_agents = [agent.strip() for agent in args.agents.split(',')]
+        requested_agents = [agent.strip() for agent in args.agents.split(',')]
         valid_agents = {'security', 'performance', 'complexity', 'documentation'}
-        invalid_agents = [a for a in selected_agents if a not in valid_agents]
+        invalid_agents = [a for a in requested_agents if a not in valid_agents]
         if invalid_agents:
-            print(f"❌ Invalid agents: {', '.join(invalid_agents)}")
-            print(f"✅ Valid agents: {', '.join(sorted(valid_agents))}")
+            print(f"[ERROR] Invalid agents: {', '.join(invalid_agents)}")
+            print(f"[INFO] Valid agents: {', '.join(sorted(valid_agents))}")
             return
+        # Always use None to let main.py's logic handle agent selection
+        selected_agents = None
     
     # Handle RAG settings
     enable_rag = args.rag and not args.no_rag
@@ -457,10 +358,10 @@ async def main():
         sys.exit(0 if success else 1)
         
     except KeyboardInterrupt:
-        print("\n👋 Operation cancelled by user")
+        print("\n[INTERRUPT] Operation cancelled by user")
         sys.exit(130)
     except Exception as e:
-        print(f"❌ Unexpected error: {str(e)}")
+        print(f"[ERROR] Unexpected error: {str(e)}")
         sys.exit(1)
     finally:
         analyzer.cleanup()

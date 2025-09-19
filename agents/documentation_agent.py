@@ -198,53 +198,61 @@ class DocumentationAgent(BaseLLMAgent):
         return f"""You are a DOCUMENTATION specialist for {language} code.
 
 CRITICAL ACCURACY REQUIREMENTS:
-- ONLY report documentation issues that actually impact code understanding
-- Verify that functions/classes truly lack necessary documentation
-- If documentation is adequate, return empty issues array []
-- Focus on public APIs and complex functions that need documentation
-- Do not report minor or cosmetic documentation issues
 
-DOCUMENTATION SCOPE - Only analyze these specific issues:
-- Missing docstrings for public functions/methods (especially complex ones)
-- Missing docstrings for public classes and modules
-- Missing parameter descriptions for functions with >3 parameters
-- Missing return value descriptions for complex functions
-- Unclear or misleading function/variable names
-- Missing inline comments for complex logic sections
+* ONLY report documentation issues that actually impact code understanding
+* Verify that functions/classes truly lack necessary documentation
+* If documentation is adequate, return empty issues array []
+* Focus on public APIs and complex functions that need documentation
+* Do not report minor or cosmetic documentation issues
+
+DOCUMENTATION SCOPE only analyze these specific issues:
+
+* Missing docstrings for public functions/methods (especially complex ones)
+* Missing docstrings for public classes and modules
+* Missing parameter descriptions for functions with more than 3 parameters
+* Missing return value descriptions for complex functions
+* Unclear or misleading function/variable names
+* Missing inline comments for complex logic sections
 
 VALIDATION REQUIREMENTS:
-- For missing docstrings: Verify function/class is public and non-trivial
-- For parameter docs: Count actual parameters and complexity
-- For unclear names: Show specific examples of confusing names
-- Each issue must reference actual code that lacks necessary documentation
+
+* For missing docstrings: Verify the function/class is public and non-trivial
+* For parameter docs: Count actual parameters and assess complexity
+* For unclear names: Show specific examples of confusing names
+* Each issue must reference actual code that lacks necessary documentation
 
 FOCUS ON:
-- Public APIs that other developers will use
-- Complex algorithms that need explanation
-- Functions with multiple parameters or return types
-- Classes with non-obvious behavior
 
-RESPONSE FORMAT - Valid JSON only:
+* Public APIs that other developers will use
+* Complex algorithms that need explanation
+* Functions with multiple parameters or return types
+* Classes with non-obvious behavior
+
+RESPONSE FORMAT Valid JSON only:
 {{
-  "issues": [
-    {{
-      "severity": "medium|low",
-      "title": "Specific documentation issue",
-      "description": "What documentation is missing and why it's needed",
-      "line_number": 123,
-      "suggestion": "Specific documentation to add",
-      "category": "documentation",
-      "documentation_type": "missing_docstring|unclear_naming|missing_comments",
-      "complexity_level": "high|medium|low",
-      "evidence": "Brief description without quotes or special characters"
-    }}
-  ],
-  "metrics": {{"documentation_coverage": 0.4}},
-  "confidence": 0.80
+"issues": [
+{{
+"severity": "medium|low",
+"title": "Specific documentation issue",
+"description": "What documentation is missing and why it's needed",
+"line_number": 123,
+"suggestion": "Specific documentation to add",
+"category": "documentation",
+"documentation_type": "missing_docstring|unclear_naming|missing_comments",
+"complexity_level": "high|medium|low",
+"evidence": "Brief description without quotes or special characters"
+}}
+],
+"metrics": {{"documentation_coverage": 0.4}},
+"confidence": 0.80
 }}
 
-REMEMBER: If code is simple or already well-documented, return empty issues array."""
-    
+REMEMBER:
+
+* If the code is simple or already well-documented, return empty issues array.
+* Only flag documentation gaps that meaningfully affect comprehension of the code.
+* Base your evaluation on reasoning about the code's purpose and complexity, not automated counts.
+"""    
     @traceable(
         name="documentation_agent_analyze",
         metadata={"agent_type": "documentation", "component": "main_analysis"}
@@ -328,14 +336,6 @@ REMEMBER: If code is simple or already well-documented, return empty issues arra
 
         enhanced_prompt = f"""
 {system_prompt}
-
-STATIC ANALYSIS RESULTS:
-Documentation Coverage: {analysis_result['documentation_coverage']:.1%}
-Functions Found: {analysis_result['functions_found']}
-Classes Found: {analysis_result['classes_found']}
-
-Missing Documentation:
-{chr(10).join(missing_summary)}
 
 CODE TO ANALYZE:
 File: {file_path}

@@ -77,8 +77,6 @@ LANGSMITH_API_KEY=your_langsmith_api_key_here
 #### Basic Analysis Commands
 
 ```bash
-# Analyze local file or directory
-python atlan-code-analyze.py --path="/path/to/code"
 
 # Detailed analysis with comprehensive reports
 python atlan-code-analyze.py --path="/path/to/code" --detailed

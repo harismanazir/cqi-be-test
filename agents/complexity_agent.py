@@ -672,82 +672,49 @@ class ComplexityAgent(BaseLLMAgent):
         return issues
 
     def get_system_prompt(self, language: str) -> str:
-        """Enhanced system prompt with language-specific static analysis integration"""
-        lang_features = ""
-        if language in self.language_patterns:
-            config = self.language_patterns[language]
-            lang_features = f"""
-LANGUAGE-SPECIFIC ANALYSIS FOR {language.upper()}:
-- Indentation: {"Tab/brace-based" if config['brace_based'] else f"{config['indent_size']} spaces"}
-- Function patterns: {len(config['function_patterns'])} patterns detected
-- Control flow constructs: {len(config['control_flow'])} patterns analyzed
-- Comment styles: {config['comment_patterns']}
-"""
+        """System prompt matching the format of other working agents"""
+        return f"""You are a COMPLEXITY analysis specialist for {language} code.
 
-        return f"""You are a COMPLEXITY analysis specialist for {language} code with access to comprehensive static analysis results.
+CRITICAL ACCURACY REQUIREMENTS:
+- ONLY report complexity issues that actually impact code maintainability
+- Verify each issue by examining the specific code patterns
+- If no complexity problems exist, return empty issues array []
+- Focus on issues that would have measurable impact on code readability and maintenance
 
-Your role is to enhance and validate static analysis findings with contextual insights.
+COMPLEXITY SCOPE - Analyze these specific issues:
+- Function length exceeding recommended limits
+- Excessive nesting depth reducing readability
+- Too many function parameters indicating design issues
+- Long lines that hurt readability
+- High cyclomatic complexity making testing difficult
+- Code patterns that violate single responsibility principle
 
-{lang_features}
+VALIDATION REQUIREMENTS:
+- For function length: Must exceed meaningful thresholds (not just style preferences)
+- For nesting depth: Must show actual deeply nested control structures
+- For parameter count: Must show functions with genuinely too many parameters
+- Each issue must reference actual problematic code patterns
 
-STATIC ANALYSIS INTEGRATION:
-- You will receive pre-computed complexity metrics from multi-language static analysis
-- Validate these findings against the actual code context
-- Provide enhanced explanations and specific refactoring suggestions
-- Flag any false positives from static analysis
-- Focus only on confirmed complexity issues
-
-COMPLEXITY FOCUS AREAS:
-1. Function length and single responsibility principle
-2. Nesting depth and control flow complexity  
-3. Parameter count and function interfaces
-4. Line length and readability
-5. Cyclomatic complexity and decision points
-
-VALIDATION CRITERIA:
-- Confirm each static finding represents a real maintainability issue
-- Consider language idioms and best practices
-- Evaluate impact on code readability and maintenance
-- Prioritize issues by actual development impact
-
-ENHANCEMENT GUIDELINES:
-- Provide specific, actionable refactoring suggestions
-- Explain the maintainability impact of each issue
-- Consider the broader codebase context and patterns
-- Suggest language-specific solutions and patterns
-- Include code examples where helpful
-
-RESPONSE FORMAT (valid JSON only):
+RESPONSE FORMAT - Valid JSON only:
 {{
   "issues": [
     {{
       "severity": "high|medium|low",
-      "title": "Enhanced issue title with specific context",
-      "description": "Detailed explanation of complexity impact and why it matters",
+      "title": "Specific complexity issue",
+      "description": "Explanation of maintainability impact",
       "line_number": 123,
-      "suggestion": "Specific refactoring recommendation with {language} best practices",
+      "suggestion": "Specific refactoring recommendation",
       "category": "complexity",
       "complexity_type": "function_length|nesting_depth|parameter_count|line_length|cyclomatic_complexity",
-      "evidence": "Relevant code pattern description",
-      "confidence_adjustment": 0.1,
-      "refactoring_priority": "high|medium|low"
+      "evidence": "Brief description of the complexity pattern"
     }}
   ],
-  "metrics": {{
-    "complexity_score": 0.7, 
-    "static_analysis_validated": true,
-    "language_specific_issues": true
-  }},
+  "metrics": {{"complexity_score": 0.7}},
   "confidence": 0.85
 }}
 
-CRITICAL REQUIREMENTS:
-- Only validate and enhance confirmed complexity issues
-- Don't create new issues unless static analysis missed obvious problems  
-- Focus on maintainability impact, not style preferences
-- Provide concrete refactoring strategies
-- Consider {language}-specific patterns and idioms"""
-
+REMEMBER: Focus on maintainability impact, not style preferences. If code is reasonably complex, return empty issues array."""
+    
     @traceable(
         name="complexity_agent_analyze",
         metadata={"agent_type": "complexity", "component": "main_analysis"}
@@ -881,7 +848,29 @@ Focus on providing actionable insights that help developers understand WHY these
         """Run LLM enhancement with tracing"""
         try:
             response = await self.llm.generate(prompt, max_tokens=2000)
-            return self._parse_and_validate_response(response, "", file_path)
+            
+            # Check if response is empty or invalid
+            if not response or not response.strip():
+                print(f"[COMPLEXITY] Empty response from LLM")
+                return {
+                    "issues": [],
+                    "metrics": {"confidence": 0.0, "empty_response": True},
+                    "confidence": 0.0
+                }
+
+            result = self._parse_and_validate_response(response, "", file_path)
+            
+            # Check if parsing failed
+            if result.get('metrics', {}).get('parsing_failed'):
+                print(f"[COMPLEXITY] JSON parsing failed for response: {response[:100]}...")
+                return {
+                    "issues": [],
+                    "metrics": {"confidence": 0.0, "parsing_failed": True},
+                    "confidence": 0.0
+                }
+
+            return result
+            
         except Exception as e:
             print(f"[COMPLEXITY] LLM enhancement failed: {e}")
             return {
@@ -890,7 +879,8 @@ Focus on providing actionable insights that help developers understand WHY these
                     "confidence": 0.0, 
                     "llm_failed": True,
                     "error": str(e)
-                }
+                },
+                "confidence": 0.0
             }
 
     @traceable(name="merge_static_llm_results")
