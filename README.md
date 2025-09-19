@@ -8,7 +8,7 @@ An advanced code analysis platform that uses specialized AI agents working toget
 
 ### Prerequisites
 
-You need Python 3.10+ and an internet connection. That's it!
+You need Python 3.11+ and an internet connection. That's it!
 
 ### 1. Install uv (Ultra-fast Python Package Manager)
 
@@ -32,7 +32,7 @@ pip install uv
 **Quick Setup (Recommended):**
 ```bash
 # Clone the repository
-git clone <your-repo-url>
+git clone https://github.com/harismanazir/cqi-be-test
 cd cqi
 
 # Install all dependencies (uv will auto-create venv and install everything)
